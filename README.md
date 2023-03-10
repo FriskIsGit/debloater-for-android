@@ -14,7 +14,7 @@ https://developer.android.com/studio/releases/platform-tools
  - Linux: https://dl.google.com/android/repository/platform-tools-latest-linux.zip
  - Mac: https://dl.google.com/android/repository/platform-tools-latest-darwin.zip
 
-> **Important:**
+**Important:**
 > 
 > Before running make sure that your device has USB debugging enabled (found in developer options),
 > the device will prompt for authorization, check `Always allow from this computer` and select `OK`
