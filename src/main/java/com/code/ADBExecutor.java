@@ -71,7 +71,7 @@ public class ADBExecutor{
         System.out.println(devices + (devices == 1 ? " connected device" : " connected devices"));
         if(devices == 0){
             System.out.println("No devices detected (is debugging via USB enabled?), press enter to refresh");
-            while(scanner.hasNextLine()){
+            if(scanner.hasNextLine()){
                 scanner.nextLine();
             }
             runDevicesStage();
