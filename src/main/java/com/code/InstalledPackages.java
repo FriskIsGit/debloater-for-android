@@ -4,13 +4,11 @@ import java.util.*;
 
 class InstalledPackages{
     private static final int PACKAGE_NAME_OFFSET = 8;
-    private final Set<String> uninstallablePackages;
-    private final Set<String> allPackages;
+    private final Set<String> bloatedInstalled = new HashSet<>();
+    private final Set<String> installed = new HashSet<>(128);
 
-    InstalledPackages(String output, List<String> packagesToUninstall){
+    InstalledPackages(String output){
         int outputLen = output.length();
-        allPackages = new HashSet<>(128);
-
         int index = 0, nextNewline;
         String packageName;
         while(index < outputLen){
@@ -21,34 +19,39 @@ class InstalledPackages{
                 decrement--;
             }
             packageName = output.substring(index + PACKAGE_NAME_OFFSET, decrement);
-            allPackages.add(packageName);
+            installed.add(packageName);
             index = nextNewline + 1;
         }
-        System.out.println("Installed packages on phone: " + allPackages.size());
+        System.out.println("Installed packages on phone: " + installed.size());
         System.out.println(allPackagesByGroup());
-        uninstallablePackages = new HashSet<>();
-        for (String name : packagesToUninstall){
-            if(allPackages.contains(name)){
-                uninstallablePackages.add(name);
+    }
+    public void resolveBloated(List<String> allBloatedPackages){
+        for (String name : allBloatedPackages){
+            if(installed.contains(name)){
+                bloatedInstalled.add(name);
             }
         }
     }
-    public int uninstallableCount(){
-        return uninstallablePackages.size();
+    public int bloatedCount(){
+        return bloatedInstalled.size();
     }
-    public boolean isUninstallable(String packageName){
-        return uninstallablePackages.contains(packageName);
+    public boolean isBloated(String packageName){
+        return bloatedInstalled.contains(packageName);
     }
-    public Set<String> uninstallableSet(){
-        return uninstallablePackages;
+    public Set<String> bloatedSet(){
+        return bloatedInstalled;
     }
-    public Set<String> allPackages(){
-        return allPackages;
+    public boolean isInstalled(String packageName){
+        return installed.contains(packageName);
     }
-    private String allPackagesByGroup(){
+    public Set<String> installedSet(){
+        return installed;
+    }
+
+    public String allPackagesByGroup(){
         HashMap<String, List<String>> groupsToPackages = new HashMap<>();
         String groupName = "";
-        for (String name : allPackages){
+        for (String name : installed){
             int firstIndex = name.indexOf('.');
             if(firstIndex == -1){
                 resolveInMap(groupsToPackages, name, name);

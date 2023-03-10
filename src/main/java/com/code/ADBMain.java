@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class ADBMain{
+    private static boolean CHECK_IF_ADB_EXISTS = true;
     public static void main(String[] args) {
         //no arguments, ask for path
         if(args.length == 0){
@@ -41,16 +42,40 @@ public class ADBMain{
                 continue;
             }
             line = Utilities.normalizeStringPath(line);
-            Path p = new File(line).toPath();
+            File dir = new File(line);
+            if(!dir.exists()){
+                System.out.println("Provided path is invalid, provide a valid directory:");
+                continue;
+            }
+            Path p = dir.toPath();
             System.out.println(p);
             isDir = Files.isDirectory(p);
-            if(isDir){
-                break;
+            if(!isDir){
+                System.out.println("Provided path is not a directory, provide a valid directory:");
+                continue;
+            }
+            if(CHECK_IF_ADB_EXISTS){
+                if(hasAdb(p)){
+                    System.out.println("Adb found, proceeding..");
+                    break;
+                }else{
+                    System.out.println("Adb couldn't be located in given directory");
+                    continue;
+                }
             }
             else{
-                System.out.println("Provided path is not a directory, provide a valid directory:");
+                break;
             }
         }
         return line;
+    }
+    private static boolean hasAdb(Path dirPath){
+        File[] entries = dirPath.toFile().listFiles();
+        for(File f : entries){
+            if(f.isFile() && f.getName().startsWith("adb")){
+                return true;
+            }
+        }
+        return false;
     }
 }

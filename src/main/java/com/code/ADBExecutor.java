@@ -8,51 +8,60 @@ import java.util.concurrent.TimeUnit;
 
 public class ADBExecutor{
     //manually: adb shell pm uninstall -k --user 0 com.x
-    private final static String INSTALL_COMMAND = "adb shell cmd package install-existing com.group.example";
+    private final static String INSTALL_COMMAND_1 = "adb shell cmd package install-existing com.group.example";
+    private final static String INSTALL_COMMAND_2 = "adb shell pm install-existing com.group.example";
     private final static String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
-    private final static List<String> UNINSTALL_COMMAND = new ArrayList<>(Arrays.asList("", "shell", "pm" ,"uninstall", "-k", "--user 0", ""));
-    private final static List<String> PACKAGE_LIST_COMMAND = new ArrayList<>(Arrays.asList("", "shell", "pm" ,"list", "packages"));
-    private final static List<String> DEVICES_COMMANDS = new ArrayList<>(Arrays.asList("", "devices"));
+    private final static String DISABLE_APP_COMMAND = "pm disable com.group.example";
 
-    private final String adbPath;
-    private List<String> bloatedPackages;
+    private final static String[] UNINSTALL_COMMAND = {"", "shell", "pm" ,"uninstall", "-k", "--user 0", ""};
+    private final static String[] PACKAGE_LIST_COMMAND = {"", "shell", "pm" ,"list", "packages"};
+    private final static String[] DEVICES_COMMANDS = {"", "devices"};
+
+    private List<String> allBloatedPackages;
 
     private ProcessBuilder procBuilder;
     private Scanner scanner;
 
     private InstalledPackages allPackages;
-    private boolean onlyAvailablePackages;
+    private boolean fallback, missingPackages;
 
-    protected ADBExecutor(String adbDirectoryPath){
-        this.adbPath = adbDirectoryPath;
+    protected ADBExecutor(String adbDir){
+        adbDir = Utilities.normalizeStringPath(adbDir);
+        String adbSuffix = "/adb";
+        if(adbDir.endsWith("/")){
+            adbSuffix = "adb";
+        }
+        String adb = adbDir + adbSuffix;
+        DEVICES_COMMANDS[0] = adb;
+        PACKAGE_LIST_COMMAND[0] =  adb;
+        UNINSTALL_COMMAND[0] = adb;
+
+        procBuilder = new ProcessBuilder();
+        procBuilder.directory(new File(adbDir));
+        scanner = new Scanner(System.in);
+        //bloated packages file
         URL url = ADBMain.class.getResource("/packages.txt");
         if(url == null){
             System.err.println("Missing package names");
+            missingPackages = true;
             return;
         }
-
         try{
             InputStream packagesStream = url.openStream();
             String readLines = Utilities.readFully(packagesStream);
-            bloatedPackages = Utilities.readAllLines(readLines);
+            allBloatedPackages = Utilities.readAllLines(readLines);
         }catch (IOException ioException){
             System.err.println("Error reading packages from file.. exiting");
             return;
         }
-        System.out.println(bloatedPackages.size() + " packages loaded");
-        System.out.println(bloatedPackages);
-        procBuilder = new ProcessBuilder();
-        procBuilder.directory(new File(adbDirectoryPath));
-        scanner = new Scanner(System.in);
+        System.out.println(allBloatedPackages.size() + " packages loaded");
+        System.out.println(allBloatedPackages);
     }
 
     protected void run(){
-        DEVICES_COMMANDS.set(0, adbPath + "/adb");
-        PACKAGE_LIST_COMMAND.set(0, adbPath + "/adb");
-        UNINSTALL_COMMAND.set(0, adbPath + "/adb");
         runDevicesStage();
-        getAvailablePackagesIfPossible();
-        runUninstallStage();
+        int mode = selectMode();
+        runUninstallStage(mode);
     }
 
     private void runDevicesStage(){
@@ -61,76 +70,106 @@ public class ADBExecutor{
         int devices = devicesConnected(output);
         System.out.println(devices + (devices == 1 ? " connected device" : " connected devices"));
         if(devices == 0){
-            System.out.println("No devices detected (is debugging via USB enabled?), try again? (y/n)");
-            while(true){
-                String line = scanner.nextLine().toLowerCase();
-                if(line.isEmpty()){
-                    continue;
-                }
-                if(line.startsWith("y")){
-                    break;
-                }
-                else if(line.startsWith("n") || line.startsWith("exit")){
-                    System.exit(0);
-                }
+            System.out.println("No devices detected (is debugging via USB enabled?), press enter to refresh");
+            while(scanner.hasNextLine()){
+                scanner.nextLine();
             }
             runDevicesStage();
         }
     }
 
-    private void getAvailablePackagesIfPossible(){
-        String output = executeCommand(PACKAGE_LIST_COMMAND);
-        if(output.startsWith("java.lang.UnsatisfiedLinkError")){
-            System.out.println("'pm list packages' command failed");
-        }else if(output.startsWith("package")){
-            allPackages = new InstalledPackages(output, bloatedPackages);
-            onlyAvailablePackages = true;
+    private int selectMode(){
+        System.out.println("Select number:");
+        System.out.println("#1 Uninstall package by name");
+        if(!missingPackages){
+            System.out.println("#2 Find all installed bloated packages to cut down on waiting time");
         }
+
+        String response = scanner.nextLine().toLowerCase();
+        boolean isValid = response.length() == 1 && Character.isDigit(response.charAt(0));
+        if(!isValid){
+            return selectMode();
+        }
+        int mode = response.charAt(0) - 48;
+        if((missingPackages && mode != 1) || mode < 1 || mode > 2){
+            return selectMode();
+        }
+        scanner.reset();
+        return mode;
     }
 
-    private void runUninstallStage(){
-        procBuilder.command(UNINSTALL_COMMAND);
-        boolean nameSpecific = false;
-        if(onlyAvailablePackages){
-            if(allPackages.uninstallableCount() == 0){
+    private void mode1(){
+        System.out.println("Provide package name:");
+        String pckg = scanner.nextLine();
+        String result = uninstallPackage(pckg);
+        System.out.println(result);
+        mode1();
+    }
+
+    private void runUninstallStage(int mode){
+        switch (mode){
+            case 1:
+                mode1();
+                break;
+            case 2:
+                String output = executeCommand(PACKAGE_LIST_COMMAND);
+                if(output.startsWith("java.lang.UnsatisfiedLinkError")){
+                    System.out.println("'pm list packages' command failed");
+                    fallback = true;
+                }else if(output.startsWith("package")){
+                    allPackages = new InstalledPackages(output);
+                    if(!missingPackages){
+                        allPackages.resolveBloated(allBloatedPackages);
+                    }
+                }else{
+                    fallback = true;
+                    System.err.println(output);
+                }
+                break;
+        }
+
+        if(fallback){
+            System.out.println("Uninstall possibly " + allBloatedPackages.size() + " packages? (y/n)");
+        }else{
+            if(allPackages.bloatedCount() == 0){
                 System.out.println("No bloated packages found on the device. Exiting ..");
                 restoreCommandInfo();
                 return;
             }
-            System.out.println(allPackages.uninstallableSet());
-            System.out.println("Uninstall " + allPackages.uninstallableCount() + " packages? (y/n)");
-        }else{
-            System.out.println("Uninstall possibly " + bloatedPackages.size() + " packages? (y/n)");
+            System.out.println(allPackages.bloatedSet());
+            System.out.println("Uninstall " + allPackages.bloatedCount() + " packages? (y/n)");
         }
 
-        String line = scanner.nextLine();
-        if(!line.startsWith("y")){
-            if(!line.startsWith("n")){
+        boolean usePrefix = false;
+
+        String prefix = scanner.nextLine();
+        if(!prefix.startsWith("y")){
+            if(!prefix.startsWith("n")){
                 System.out.println("Exiting");
                 System.exit(0);
             }
             System.out.println("Uninstall only those starting with:");
-            line = scanner.nextLine();
-            nameSpecific = true;
+            prefix = scanner.nextLine();
+            if(prefix.isEmpty()){
+                System.out.println("Exiting");
+                System.exit(0);
+            }
+            usePrefix = true;
         }
         long start = System.currentTimeMillis();
-        int lastIndex = UNINSTALL_COMMAND.size() - 1;
         int fail = 0;
         int success = 0;
-        for (String currentPackage : bloatedPackages){
-            //skip if not contained because it will fail anyway
-            if(onlyAvailablePackages){
-                if(!allPackages.isUninstallable(currentPackage)){
-                    continue;
-                }
+
+        for (String currentPackage : allBloatedPackages){
+            if(usePrefix && !currentPackage.startsWith(prefix)){
+                continue;
             }
-            if(nameSpecific){
-                if(!currentPackage.startsWith(line)){
-                    continue;
-                }
+
+            if(!fallback && !allPackages.isBloated(currentPackage)){
+                continue;
             }
-            UNINSTALL_COMMAND.set(lastIndex, currentPackage);
-            String output = executeCommand(UNINSTALL_COMMAND);
+
+            String output = uninstallPackage(currentPackage);
             if(output.startsWith("Success")){
                 success++;
                 System.out.println("Deleted: " + currentPackage);
@@ -150,10 +189,14 @@ public class ADBExecutor{
 
     private void restoreCommandInfo(){
         System.out.println("If you wish to install back any deleted system packages try running command below:");
-        System.out.println(INSTALL_COMMAND);
+        System.out.println(INSTALL_COMMAND_1 + " or " + INSTALL_COMMAND_2);
     }
 
-    private String executeCommand(List<String> commands){
+    public String uninstallPackage(String pckgName){
+        UNINSTALL_COMMAND[UNINSTALL_COMMAND.length - 1] = pckgName;
+        return executeCommand(UNINSTALL_COMMAND);
+    }
+    private String executeCommand(String[] commands){
         procBuilder.command(commands);
         try{
             Process processAlgo = procBuilder.start();
