@@ -11,7 +11,7 @@ class InstalledPackages{
         int outputLen = output.length();
         int index = 0, nextNewline;
         String packageName;
-        while(index < outputLen){
+        while(index < outputLen-1){
             nextNewline = output.indexOf('\n', index + PACKAGE_NAME_OFFSET);
             int decrement = nextNewline;
             //fix made to correctly parse package name, regardless of the number of carriage returns
