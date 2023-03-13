@@ -8,10 +8,11 @@ import java.util.concurrent.TimeUnit;
 
 public class ADBExecutor{
     //manually: adb shell pm uninstall -k --user 0 com.x
-    private final static String INSTALL_COMMAND_1 = "adb shell cmd package install-existing com.group.example";
-    private final static String INSTALL_COMMAND_2 = "adb shell pm install-existing com.group.example";
+    private final static String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
+    private final static String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
     private final static String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
-    private final static String DISABLE_APP_COMMAND = "pm disable com.group.example";
+    private final static String DISABLE_APP_COMMAND_1 = "pm disable PACKAGE";
+    private final static String DISABLE_APP_COMMAND_2 = "pm disable-user PACKAGE";
 
     private final static String[] UNINSTALL_COMMAND = {"", "shell", "pm" ,"uninstall", "-k", "--user 0", ""};
     private final static String[] PACKAGE_LIST_COMMAND = {"", "shell", "pm" ,"list", "packages"};

@@ -2,12 +2,14 @@ package com.code;
 
 import java.util.*;
 
-class InstalledPackages{
+public class InstalledPackages{
     private static final int PACKAGE_NAME_OFFSET = 8;
     private final Set<String> bloatedInstalled = new HashSet<>();
     private final Set<String> installed = new HashSet<>(128);
 
-    InstalledPackages(String output){
+    //parsers package names, expected form:
+    //"package:com.group.example\n"
+    public InstalledPackages(String output){
         int outputLen = output.length();
         int index = 0, nextNewline;
         String packageName;
