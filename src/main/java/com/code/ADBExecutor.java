@@ -216,8 +216,7 @@ public class ADBExecutor{
         }
         int devices = 0;
         for (int i = newLine + 1, len = output.length()-6; i < len; i++){
-            if(output.charAt(i) == 'd' && output.charAt(i+1) == 'e' && output.charAt(i+2) == 'v'
-            && output.charAt(i+3) == 'i' && output.charAt(i+4) == 'c' && output.charAt(i+5) == 'e'){
+            if(output.startsWith("device", i)){
                 devices++;
             }
         }

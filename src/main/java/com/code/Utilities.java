@@ -48,13 +48,12 @@ public class Utilities{
         }
         return new String(buff);
     }
-    public static Path convertURLToPath(URL url){
+    public static String convertURLToString(URL url){
         String str = url.getPath();
         if(str.charAt(0) == '/'){
             str = str.substring(1);
         }
-        str = str.replace("%20"," ");
-        return Paths.get(str);
+        return str.replace("%20"," ");
     }
     public static String normalizeStringPath(String strPath){
         strPath = strPath.replace("\\", "/");

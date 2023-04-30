@@ -1,38 +1,77 @@
 package com.code;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.nio.file.*;
 import java.util.Scanner;
+import java.util.zip.ZipInputStream;
 
 public class ADBMain{
     private static boolean CHECK_IF_ADB_EXISTS = true;
+    private static boolean CACHE_ADB_PATH = true;
     public static void main(String[] args) {
         //no arguments, ask for path
         if(args.length == 0){
-            System.out.println("Provide path to directory where adb is located:");
-            new ADBExecutor(getValidPath()).run();
-        }
-        //path arg provided
-        else if(args.length == 1){
-            validatePathAndRun(args[0]);
-        }
-        else{
-            String path = Utilities.stringArrayToString(args);
-            validatePathAndRun(path);
-        }
-    }
-    private static void validatePathAndRun(String path){
-        boolean isValid = isValidPath(path);
-        if(isValid){
+            String path = readPathFromCache();
+            if(path == null || !isValidPath(path)){
+                System.out.println("Provide path to directory where adb is located:");
+                path = getValidPath();
+            }
+            cachePath(path);
             new ADBExecutor(path).run();
+            return;
         }
-        else{
+        //path arg/args provided
+        String path = args.length == 1 ? args[0] : Utilities.stringArrayToString(args);
+        if(!isValidPath(path)){
             System.out.println("Provided path is not a directory, provide a valid directory:");
-            new ADBExecutor(getValidPath()).run();
+            path = getValidPath();
+        }
+        cachePath(path);
+        new ADBExecutor(path).run();
+    }
+
+    private static void cachePath(String path){
+        if(!CACHE_ADB_PATH){
+            return;
+        }
+        URL url = ADBMain.class.getProtectionDomain().getCodeSource().getLocation();
+        String executingPath = Utilities.convertURLToString(url);
+        int lastSlash = executingPath.lastIndexOf('/');
+        Path cachePath = Paths.get(executingPath.substring(0, lastSlash) + "/cache.txt");
+
+        try{
+            if(Files.notExists(cachePath)){
+                Files.createFile(cachePath);
+            }
+            Files.write(cachePath, path.getBytes(), StandardOpenOption.WRITE);
+        }catch (IOException e){
+            return;
         }
     }
+    private static String readPathFromCache(){
+        if(!CACHE_ADB_PATH){
+            return null;
+        }
+        URL url = ADBMain.class.getProtectionDomain().getCodeSource().getLocation();
+        String executingPath = Utilities.convertURLToString(url);
+        int lastSlash = executingPath.lastIndexOf('/');
+        executingPath = executingPath.substring(0, lastSlash);
+        Path cachePath = Paths.get(executingPath + "/cache.txt");
+        if(!Files.exists(cachePath)){
+            return null;
+        }
+        byte[] pathBytes;
+        try{
+            pathBytes = Files.readAllBytes(cachePath);
+        }catch (IOException e){
+            return null;
+        }
+        return new String(pathBytes);
+    }
+
     private static String getValidPath(){
         Scanner scan = new Scanner(System.in);
         String line;
@@ -46,7 +85,7 @@ public class ADBMain{
     }
 
     private static boolean isValidPath(String line){
-        if(line.isEmpty()){
+        if(line == null || line.isEmpty()){
             return false;
         }
         line = Utilities.normalizeStringPath(line);
