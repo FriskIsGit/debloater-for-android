@@ -8,15 +8,16 @@ import java.util.concurrent.TimeUnit;
 
 public class ADBExecutor{
     //manually: adb shell pm uninstall -k --user 0 com.x
-    private final static String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
-    private final static String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
-    private final static String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
-    private final static String DISABLE_APP_COMMAND_1 = "pm disable PACKAGE";
-    private final static String DISABLE_APP_COMMAND_2 = "pm disable-user PACKAGE";
+    private final String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
+    private final String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
+    private final String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
+    private final String DISABLE_APP_COMMAND_1 = "pm disable PACKAGE";
+    private final String DISABLE_APP_COMMAND_2 = "pm disable-user PACKAGE";
 
-    private final static String[] UNINSTALL_COMMAND = {"", "shell", "pm" ,"uninstall", "-k", "--user 0", ""};
-    private final static String[] PACKAGE_LIST_COMMAND = {"", "shell", "pm" ,"list", "packages"};
-    private final static String[] DEVICES_COMMANDS = {"", "devices"};
+    private final String[] UNINSTALL_KEEP_COMMAND = {"", "shell", "pm" ,"uninstall", "-k", "--user 0", ""};
+    private final String[] UNINSTALL_FULL_COMMAND = {"", "shell", "pm", "uninstall", "--user 0", ""};
+    private final String[] PACKAGE_LIST_COMMAND = {"", "shell", "pm" ,"list", "packages"};
+    private final String[] DEVICES_COMMANDS = {"", "devices"};
 
     private List<String> allBloatedPackages;
 
@@ -35,7 +36,8 @@ public class ADBExecutor{
         String adb = adbDir + adbSuffix;
         DEVICES_COMMANDS[0] = adb;
         PACKAGE_LIST_COMMAND[0] =  adb;
-        UNINSTALL_COMMAND[0] = adb;
+        UNINSTALL_KEEP_COMMAND[0] = adb;
+        UNINSTALL_FULL_COMMAND[0] = adb;
 
         procBuilder = new ProcessBuilder();
         procBuilder.directory(new File(adbDir));
@@ -61,7 +63,7 @@ public class ADBExecutor{
 
     protected void run(){
         runDevicesStage();
-        int mode = selectMode();
+        Mode mode = selectMode();
         runUninstallStage(mode);
     }
 
@@ -79,38 +81,42 @@ public class ADBExecutor{
         }
     }
 
-    private int selectMode(){
+    private Mode selectMode(){
         System.out.println("Select number:");
         System.out.println("#1 Uninstall package by name");
         if(!missingPackages){
             System.out.println("#2 Find all installed bloated packages to cut down on waiting time");
         }
+        System.out.println("For full app removal not keeping data and cache directories around after package removal," +
+                " include f after the number (1f or 2f).");
 
         String response = scanner.nextLine().toLowerCase();
-        boolean isValid = response.length() == 1 && Character.isDigit(response.charAt(0));
+        boolean isValid = Character.isDigit(response.charAt(0));
         if(!isValid){
             return selectMode();
         }
+
+        boolean isFull = response.length() == 2 && response.charAt(1) == 'f';
         int mode = response.charAt(0) - 48;
         if((missingPackages && mode != 1) || mode < 1 || mode > 2){
             return selectMode();
         }
         scanner.reset();
-        return mode;
+        return new Mode(mode, isFull);
     }
 
-    private void mode1(){
+    private void mode1(boolean isFull){
         System.out.println("Provide package name:");
         String pckg = scanner.nextLine();
-        String result = uninstallPackage(pckg);
+        String result = isFull ? uninstallPackageFully(pckg) : uninstallPackage(pckg);
         System.out.println(result);
-        mode1();
+        mode1(isFull);
     }
 
-    private void runUninstallStage(int mode){
-        switch (mode){
+    private void runUninstallStage(Mode mode){
+        switch (mode.ordinal){
             case 1:
-                mode1();
+                mode1(mode.full);
                 break;
             case 2:
                 String output = executeCommand(PACKAGE_LIST_COMMAND);
@@ -138,7 +144,7 @@ public class ADBExecutor{
                 return;
             }
             System.out.println(allPackages.bloatedSet());
-            System.out.println("Uninstall " + allPackages.bloatedCount() + " packages? (y/n)");
+            System.out.println("Uninstall " + (mode.full ? "fully " : "") + allPackages.bloatedCount() + " packages? (y/n)");
         }
 
         boolean usePrefix = false;
@@ -170,7 +176,7 @@ public class ADBExecutor{
                 continue;
             }
 
-            String output = uninstallPackage(currentPackage);
+            String output = mode.full ? uninstallPackageFully(currentPackage) : uninstallPackage(currentPackage);
             if(output.startsWith("Success")){
                 success++;
                 System.out.println("Deleted: " + currentPackage);
@@ -194,8 +200,12 @@ public class ADBExecutor{
     }
 
     public String uninstallPackage(String pckgName){
-        UNINSTALL_COMMAND[UNINSTALL_COMMAND.length - 1] = pckgName;
-        return executeCommand(UNINSTALL_COMMAND);
+        UNINSTALL_KEEP_COMMAND[UNINSTALL_KEEP_COMMAND.length - 1] = pckgName;
+        return executeCommand(UNINSTALL_KEEP_COMMAND);
+    }
+    public String uninstallPackageFully(String pckgName){
+        UNINSTALL_FULL_COMMAND[UNINSTALL_FULL_COMMAND.length - 1] = pckgName;
+        return executeCommand(UNINSTALL_FULL_COMMAND);
     }
     private String executeCommand(String[] commands){
         procBuilder.command(commands);
@@ -221,5 +231,19 @@ public class ADBExecutor{
             }
         }
         return devices;
+    }
+}
+
+class Mode{
+    public int ordinal;
+    public boolean full = false;
+
+    public Mode(int ordinal){
+        this.ordinal = ordinal;
+    }
+
+    public Mode(int ordinal, boolean full){
+        this.ordinal = ordinal;
+        this.full = full;
     }
 }
