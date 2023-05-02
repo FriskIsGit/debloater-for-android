@@ -87,7 +87,7 @@ public class ADBExecutor{
         if(!missingPackages){
             System.out.println("#2 Find all installed bloated packages to cut down on waiting time");
         }
-        System.out.println("For full app removal not keeping data and cache directories around after package removal," +
+        System.out.println("For full app removal - deleting data and cache directories of an app," +
                 " include f after the number (1f or 2f).");
 
         String response = scanner.nextLine().toLowerCase();
