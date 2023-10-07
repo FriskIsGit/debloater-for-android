@@ -30,13 +30,10 @@ https://developer.android.com/studio/releases/platform-tools
 $ git clone https://github.com/FriskIsGit/debloater-for-android
 
 # Navigate to java's source folder
-$ cd debloater-for-android/src/main/java/com/code
+$ cd debloater-for-android/src/main/java
 
-# Compile
-$ javac ADBMain.java Utilities.java ADBExecutor.java InstalledPackages.java
-
-# Step up two directories to debloater-for-android/src/main/java/
-$ cd ../../
+# Compile all .java files where ADBMain.java is the entry point file
+$ javac -cp . com/code/ADBMain.java
 
 # Run the program (you will be prompted to provide path to platform tools)
 $ java com.code.ADBMain
