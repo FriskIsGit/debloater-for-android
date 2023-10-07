@@ -32,6 +32,9 @@ $ git clone https://github.com/FriskIsGit/debloater-for-android
 # Navigate to java's source folder
 $ cd debloater-for-android/src/main/java
 
+# Move (or copy) packages.txt to the working directory
+$ mv ../resources/packages.txt .
+
 # Compile all .java files where ADBMain.java is the entry point file
 $ javac -cp . com/code/ADBMain.java
 
@@ -43,6 +46,16 @@ $ java com.code.ADBMain
 # Pass the path as argument to the program (quotation marks are not required)
 $ java com.code.ADBMain E:/Android Tools/platform-tools/
 ```
+
+#### Copy and paste:
+```bash
+git clone https://github.com/FriskIsGit/debloater-for-android;
+cd debloater-for-android/src/main/java;
+mv ../resources/packages.txt .;
+javac -cp . com/code/ADBMain.java;
+java com.code.ADBMain
+```
+
 
 ## Modes
 #### `1` Uninstall single package
