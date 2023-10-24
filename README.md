@@ -55,6 +55,14 @@ mv ../resources/packages.txt .;
 javac -cp . com/code/ADBMain.java;
 java com.code.ADBMain
 ```
+#### For cmd:
+```cmd
+git clone https://github.com/FriskIsGit/debloater-for-android &
+cd debloater-for-android/src/main/java &
+move ../resources/packages.txt . &
+javac -cp . com/code/ADBMain.java &
+java com.code.ADBMain
+```
 
 
 ## Modes
