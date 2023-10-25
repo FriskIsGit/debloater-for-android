@@ -223,7 +223,6 @@ com.samsung.android.net.wifi.wifiguider
 com.samsung.android.networkdiagnostic
 com.samsung.android.oneconnect
 com.samsung.android.privateshare
-com.samsung.android.provider.filterprovider
 com.samsung.android.rubin.app
 com.samsung.android.samsungpass
 com.samsung.android.samsungpassautofill
