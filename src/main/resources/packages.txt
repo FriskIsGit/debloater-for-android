@@ -180,7 +180,6 @@ com.samsung.android.aware.service
 com.samsung.android.bbc.bbcagent
 com.samsung.android.beaconmanager
 com.samsung.android.bio.face.service
-com.samsung.android.biometrics.app.setting
 com.samsung.android.bixby.agent
 com.samsung.android.bixby.agent.dummy
 com.samsung.android.bixby.service
