@@ -6,6 +6,7 @@ import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.nio.file.*;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
 
 public class ADBMain{
@@ -14,13 +15,17 @@ public class ADBMain{
     public static void main(String[] args) {
         //no arguments, ask for path
         if(args.length == 0){
+            if (detectADB()) {
+                new ADBExecutor("", true).run();
+                return;
+            }
             String path = readPathFromCache();
             if(path == null || !isValidPath(path)){
                 System.out.println("Provide path to directory where adb is located:");
                 path = getValidPath();
             }
             cachePath(path);
-            new ADBExecutor(path).run();
+            new ADBExecutor(path, true).run();
             return;
         }
         //path arg/args provided
@@ -30,7 +35,21 @@ public class ADBMain{
             path = getValidPath();
         }
         cachePath(path);
-        new ADBExecutor(path).run();
+        new ADBExecutor(path, false).run();
+    }
+
+    private static boolean detectADB() {
+        ProcessBuilder procBuilder = new ProcessBuilder();
+        procBuilder.command("adb");
+        try{
+            Process processAlgo = procBuilder.start();
+            processAlgo.waitFor(3, TimeUnit.SECONDS);
+            String output = Utilities.readFully(processAlgo.getInputStream());
+            return output.startsWith("Android Debug Bridge");
+        }catch (IOException | InterruptedException exceptions){
+            exceptions.printStackTrace();
+            return false;
+        }
     }
 
     private static void cachePath(String path){

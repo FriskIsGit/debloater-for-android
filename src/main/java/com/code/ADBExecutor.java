@@ -17,6 +17,7 @@ public class ADBExecutor{
     private final String[] UNINSTALL_KEEP_COMMAND = {"", "shell", "pm" ,"uninstall", "-k", "--user 0", ""};
     private final String[] UNINSTALL_FULL_COMMAND = {"", "shell", "pm", "uninstall", "--user 0", ""};
     private final String[] PACKAGE_LIST_COMMAND = {"", "shell", "pm" ,"list", "packages"};
+    private final String[] INSTALL_BACK_COMMAND = {"", "shell", "pm" ,"install-existing", ""};
     private final String[] DEVICES_COMMANDS = {"", "devices"};
 
     private List<String> allBloatedPackages;
@@ -27,20 +28,25 @@ public class ADBExecutor{
     private InstalledPackages allPackages;
     private boolean fallback, missingPackages;
 
-    protected ADBExecutor(String adbDir){
-        adbDir = Utilities.normalizeStringPath(adbDir);
-        String adbSuffix = "/adb";
-        if(adbDir.endsWith("/")){
-            adbSuffix = "adb";
+    protected ADBExecutor(String adbDir, boolean isEnvVar){
+        String adb = "adb";
+        if (!isEnvVar) {
+            adbDir = Utilities.normalizeStringPath(adbDir);
+            String adbSuffix = "/adb";
+            if(adbDir.endsWith("/")){
+                adbSuffix = "adb";
+            }
+            adb = adbDir + adbSuffix;
         }
-        String adb = adbDir + adbSuffix;
+
         DEVICES_COMMANDS[0] = adb;
         PACKAGE_LIST_COMMAND[0] =  adb;
         UNINSTALL_KEEP_COMMAND[0] = adb;
         UNINSTALL_FULL_COMMAND[0] = adb;
+        INSTALL_BACK_COMMAND[0] = adb;
 
         procBuilder = new ProcessBuilder();
-        procBuilder.directory(new File(adbDir));
+        //removed adb_dir, not needed
         scanner = new Scanner(System.in);
         //bloated packages file
         URL url = ADBMain.class.getResource("/packages.txt");
@@ -90,6 +96,8 @@ public class ADBExecutor{
         System.out.println("For full app removal - deleting data and cache directories of an app," +
                 " include f after the number (1f or 2f).");
 
+        System.out.println("#3 Debug issues associated with an app by installing uninstalled apps one by one");
+
         String response = scanner.nextLine().toLowerCase();
         boolean isValid = Character.isDigit(response.charAt(0));
         if(!isValid){
@@ -98,7 +106,7 @@ public class ADBExecutor{
 
         boolean isFull = response.length() == 2 && response.charAt(1) == 'f';
         int mode = response.charAt(0) - 48;
-        if((missingPackages && mode != 1) || mode < 1 || mode > 2){
+        if((missingPackages && mode != 1) || mode < 1 || mode > 3){
             return selectMode();
         }
         scanner.reset();
@@ -133,6 +141,34 @@ public class ADBExecutor{
                     System.err.println(output);
                 }
                 break;
+            case 3: {
+                final boolean streamline_success = false;
+                int success = 0, fail = 0, unknown = 0;
+                for(String bloated: allBloatedPackages) {
+                    INSTALL_BACK_COMMAND[4] = bloated;
+                    System.out.println("Installing back: " + bloated + "; Status[success:"+success+','+" fail:"+fail+','+" timed_out:"+unknown+']');
+                    output = executeCommand(INSTALL_BACK_COMMAND);
+                    if (output.isEmpty()) {
+                        unknown++;
+                        System.out.println("Timed out");
+                    } else {
+                        if (output.startsWith("Success")) {
+                            success++;
+                            if (streamline_success)
+                                continue;
+                        } else {
+                            fail++;
+                            continue;
+                        }
+                        System.out.println(output);
+                    }
+                    if(scanner.hasNextLine()){
+                        scanner.nextLine();
+                    }
+                }
+                System.exit(0);
+                break;
+            }
         }
 
         if(fallback){
@@ -215,8 +251,8 @@ public class ADBExecutor{
             return Utilities.readFully(processAlgo.getInputStream());
         }catch (IOException | InterruptedException exceptions){
             exceptions.printStackTrace();
+            return "";
         }
-        return "";
     }
 
     private int devicesConnected(String output){
