@@ -80,7 +80,6 @@ com.google.android.overlay.modules.cellbroadcastreceiver
 com.google.android.partnersetup
 com.google.android.pixel.setupwizard
 com.google.android.printservice.recommendation
-com.google.android.projection.gearhead
 com.google.android.setupwizard
 com.google.android.syncadapters.calendar
 com.google.android.syncadapters.contacts
@@ -225,7 +224,6 @@ com.samsung.android.networkdiagnostic
 com.samsung.android.oneconnect
 com.samsung.android.privateshare
 com.samsung.android.provider.filterprovider
-com.samsung.android.providers.media
 com.samsung.android.rubin.app
 com.samsung.android.samsungpass
 com.samsung.android.samsungpassautofill
@@ -317,7 +315,6 @@ com.sec.knox.packageverifier
 com.sec.location.nsflp2
 com.sec.phone
 com.sec.spp.push
-com.sec.sve
 com.sec.vsim.ericssonnsds.webapp
 com.sem.factoryapp
 com.skms.android.agent
