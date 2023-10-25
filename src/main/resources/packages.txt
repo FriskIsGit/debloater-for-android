@@ -187,7 +187,6 @@ com.samsung.android.bixby.agent.dummy
 com.samsung.android.bixby.service
 com.samsung.android.bixby.wakeup
 com.samsung.android.bixbyvision.framework
-com.samsung.android.cameraxservice
 com.samsung.android.carkey
 com.samsung.android.coldwalletservice
 com.samsung.android.da.daagent
@@ -199,7 +198,6 @@ com.samsung.android.easysetup
 com.samsung.android.email.provider
 com.samsung.android.emojiupdater
 com.samsung.android.fast
-com.samsung.android.forest
 com.samsung.android.game.gamehome
 com.samsung.android.game.gametools
 com.samsung.android.hmt.vrshell
