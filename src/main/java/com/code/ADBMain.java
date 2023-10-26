@@ -2,30 +2,33 @@ package com.code;
 
 import java.io.*;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
 import java.nio.file.*;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.ZipInputStream;
 
 public class ADBMain{
-    private static boolean CHECK_IF_ADB_EXISTS = true;
+    private static boolean ENSURE_ADB_EXISTS = true;
     private static boolean CACHE_ADB_PATH = true;
+
     public static void main(String[] args) {
         //no arguments, ask for path
         if(args.length == 0){
-            if (detectADB()) {
-                new ADBExecutor("", true).run();
+            System.out.println("Detecting ADB..");
+            if (detectADBEnv()) {
+                CLI.run(ADBCommands.fromEnv());
+                return;
+            }
+            if (detectADBCmdEnv()) {
+                CLI.run(ADBCommands.fromCmdEnv());
                 return;
             }
             String path = readPathFromCache();
-            if(path == null || !isValidPath(path)){
+            if(!isValidPath(path)){
                 System.out.println("Provide path to directory where adb is located:");
                 path = getValidPath();
             }
             cachePath(path);
-            new ADBExecutor(path, true).run();
+            CLI.run(ADBCommands.fromDir(path));
             return;
         }
         //path arg/args provided
@@ -35,19 +38,35 @@ public class ADBMain{
             path = getValidPath();
         }
         cachePath(path);
-        new ADBExecutor(path, false).run();
+        CLI.run(ADBCommands.fromDir(path));
     }
 
-    private static boolean detectADB() {
+    private static boolean detectADBEnv() {
         ProcessBuilder procBuilder = new ProcessBuilder();
         procBuilder.command("adb");
         try{
-            Process processAlgo = procBuilder.start();
-            processAlgo.waitFor(3, TimeUnit.SECONDS);
-            String output = Utilities.readFully(processAlgo.getInputStream());
+            Process proc = procBuilder.start();
+            proc.waitFor(10, TimeUnit.MILLISECONDS);
+            String output = Utilities.read(proc.getInputStream(), 36, false);
             return output.startsWith("Android Debug Bridge");
         }catch (IOException | InterruptedException exceptions){
-            exceptions.printStackTrace();
+            // adb is not in path or adb as env var is only visible to cmd
+            return false;
+        }
+    }
+    private static boolean detectADBCmdEnv() {
+        if (!System.getProperty("os.name").toLowerCase().startsWith("windows")) { // check on macOS?
+            return false;
+        }
+        ProcessBuilder procBuilder = new ProcessBuilder();
+        procBuilder.command("cmd", "/C", "adb");
+        try{
+            Process proc = procBuilder.start();
+            proc.waitFor(10, TimeUnit.MILLISECONDS);
+            String output = Utilities.read(proc.getInputStream(), 36, false);
+            return output.startsWith("Android Debug Bridge");
+        }catch (IOException | InterruptedException e){
+            e.printStackTrace();
             return false;
         }
     }
@@ -103,12 +122,12 @@ public class ADBMain{
         return line;
     }
 
-    private static boolean isValidPath(String line){
-        if(line == null || line.isEmpty()){
+    private static boolean isValidPath(String path){
+        if(path == null || path.isEmpty()){
             return false;
         }
-        line = Utilities.normalizeStringPath(line);
-        File dir = new File(line);
+        path = Utilities.normalizeStringPath(path);
+        File dir = new File(path);
         if(!dir.exists()){
             System.out.println("Provided path is invalid, provide a valid directory:");
             return false;
@@ -119,7 +138,7 @@ public class ADBMain{
             System.out.println("Provided path is not a directory, provide a valid directory:");
             return false;
         }
-        if(CHECK_IF_ADB_EXISTS){
+        if(ENSURE_ADB_EXISTS){
             if(hasAdb(p)){
                 System.out.println("Adb found, proceeding..");
                 return true;

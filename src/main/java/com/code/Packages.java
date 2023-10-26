@@ -2,14 +2,18 @@ package com.code;
 
 import java.util.*;
 
-public class InstalledPackages{
+public class Packages{
     private static final int PACKAGE_NAME_OFFSET = 8;
-    private final Set<String> bloatedInstalled = new HashSet<>();
-    private final Set<String> installed = new HashSet<>(128);
+    private Set<String> installed = new HashSet<>(128);
+    private Set<String> bloatedInstalled = new HashSet<>();
+
+    private Packages(){
+    }
 
     //parsers package names, expected form:
     //"package:com.group.example\n"
-    public InstalledPackages(String output){
+    public static Packages parse(String output){
+        Packages packages = new Packages();
         int outputLen = output.length();
         int index = 0, nextNewline;
         String packageName;
@@ -21,13 +25,21 @@ public class InstalledPackages{
                 decrement--;
             }
             packageName = output.substring(index + PACKAGE_NAME_OFFSET, decrement);
-            installed.add(packageName);
+            packages.installed.add(packageName);
             index = nextNewline + 1;
         }
-        System.out.println("Installed packages on phone: " + installed.size());
-        System.out.println(allPackagesByGroup());
+        System.out.println("Installed packages on phone: " + packages.installed.size());
+        System.out.println(packages.sortedByGroups());
+        return packages;
     }
-    public void resolveBloated(List<String> allBloatedPackages){
+
+    public static Packages from(List<String> packages){
+        Packages packs = new Packages();
+        packs.installed = new HashSet<>(packages);
+        return packs;
+    }
+
+    public void resolveExisting(List<String> allBloatedPackages){
         for (String name : allBloatedPackages){
             if(installed.contains(name)){
                 bloatedInstalled.add(name);
@@ -37,20 +49,17 @@ public class InstalledPackages{
     public int bloatedCount(){
         return bloatedInstalled.size();
     }
+    public Set<String> getInstalledBloated(){
+        return bloatedInstalled;
+    }
     public boolean isBloated(String packageName){
         return bloatedInstalled.contains(packageName);
-    }
-    public Set<String> bloatedSet(){
-        return bloatedInstalled;
     }
     public boolean isInstalled(String packageName){
         return installed.contains(packageName);
     }
-    public Set<String> installedSet(){
-        return installed;
-    }
 
-    public String allPackagesByGroup(){
+    public String sortedByGroups(){
         HashMap<String, List<String>> groupsToPackages = new HashMap<>();
         String groupName = "";
         for (String name : installed){

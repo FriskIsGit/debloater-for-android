@@ -1,26 +1,24 @@
 package com.code;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class Utilities{
+    public static final int MAX_LEN = 1073741823;
     public static String readFully(InputStream is) throws IOException{
-        return readFully(is, 65535, false);
+        return read(is, MAX_LEN, false);
     }
-    public static String readFully(InputStream is, int maxLen, boolean throwException) throws IOException{
-        byte[] buff = new byte[0];
-        if (maxLen == -1) {
-            maxLen = 2147483647;
+    public static String read(InputStream is, int maxLen, boolean throwException) throws IOException{
+        if (maxLen < 0) {
+            return "";
         }
+        byte[] buff = new byte[0];
 
         int actualRead;
         for(int i = 0; i < maxLen; i += actualRead) {
