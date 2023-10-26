@@ -331,7 +331,6 @@ com.xiaomi.mi_connect_service
 com.xiaomi.payment
 com.xiaomi.scanner
 com.xiaomi.simactivate.service
-com.xiaomi.xmsf
 com.xiaomi.xmsfkeeper
 org.codeaurora.ims
 org.simalliance.openmobileapi.service
