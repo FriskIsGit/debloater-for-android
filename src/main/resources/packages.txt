@@ -60,6 +60,8 @@ com.google.android.apps.turbo
 com.google.android.apps.wellbeing
 com.google.android.apps.work.clouddpc
 com.google.android.apps.youtube.music
+com.google.android.apps.walletnfcrel
+com.google.android.apps.subscriptions.red
 com.google.android.as
 com.google.android.as.oss
 com.google.android.calendar
