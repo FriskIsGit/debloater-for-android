@@ -1,6 +1,5 @@
 package com.code;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -20,15 +19,16 @@ public class ADBCommands{
     private String[] DEVICES_COMMANDS;
 
     public static ADBCommands fromDir(String adbDir) {
-        //execute with adb directory - don't include the entire path each time
+        //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
         ADBCommands commands = new ADBCommands();
         adbDir = Utilities.normalizeStringPath(adbDir);
-        commands.procBuilder.directory(new File(adbDir));
-        commands.setupCommands(false);
+        String adbPath = formAdbPath(adbDir);
+        commands.setupCommands(adbPath);
         return commands;
     }
+
     public static ADBCommands fromEnv() {
-        //execute with anywhere since adb is a program, usually Linux
+        //execute with anywhere since adb is seen as a program, usually Linux
         ADBCommands commands = new ADBCommands();
         commands.setupCommands(false);
         return commands;
@@ -38,6 +38,14 @@ public class ADBCommands{
         ADBCommands commands = new ADBCommands();
         commands.setupCommands(true);
         return commands;
+    }
+
+    private static String formAdbPath(String adbDir){
+        if (adbDir.charAt(adbDir.length() - 1) == '/'){
+            return adbDir + "adb";
+        } else {
+            return adbDir + "/adb";
+        }
     }
 
     private void setupCommands(boolean cmd){
@@ -55,6 +63,14 @@ public class ADBCommands{
         LIST_PACKAGES_COMMAND = new String[]{"adb", "shell", "pm", "list", "packages"};
         INSTALL_BACK_COMMAND = new String[]{"adb", "shell", "pm", "install-existing", ""};
         DEVICES_COMMANDS = new String[]{"adb", "devices"};
+    }
+
+    private void setupCommands(String adbPath){
+        UNINSTALL_KEEP_COMMAND = new String[]{adbPath, "shell", "pm", "uninstall", "-k", "--user 0", ""};
+        UNINSTALL_FULL_COMMAND = new String[]{adbPath, "shell", "pm", "uninstall", "--user 0", ""};
+        LIST_PACKAGES_COMMAND = new String[]{adbPath, "shell", "pm", "list", "packages"};
+        INSTALL_BACK_COMMAND = new String[]{adbPath, "shell", "pm", "install-existing", ""};
+        DEVICES_COMMANDS = new String[]{adbPath, "devices"};
     }
 
     public String executeCommand(String[] commands){
@@ -108,5 +124,4 @@ public class ADBCommands{
     public String listPackages(){
         return executeCommand(LIST_PACKAGES_COMMAND);
     }
-
 }
