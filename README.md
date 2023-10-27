@@ -1,5 +1,6 @@
 ## Package uninstaller for android
-Root privileges are not required for the uninstaller to work
+Root privileges are not required for the uninstaller to work <br>
+Most packages in the list are from google, xiaomi and samsung.
 ### Requirements:
 ```
 - JDK 8 or higher
@@ -66,8 +67,9 @@ java com.code.ADBMain
 
 
 ## Modes
-#### `1` Uninstall single package
-#### `2` Uninstall apps listed in packages.txt or those starting with a prefix
+#### `1` Uninstall package by name
+#### `2` Uninstall apps listed in packages.txt
+#### `3` Install back apps listed in packages.txt
 
 
 
