@@ -76,6 +76,9 @@ public class CLI{
                 " include f after the number to install all without prompting (streamline)");
 
         String response = scanner.nextLine().toLowerCase();
+        while (response.isEmpty()) {
+            response = scanner.nextLine().toLowerCase();
+        }
         boolean isValid = Character.isDigit(response.charAt(0));
         if(!isValid){
             return selectMode();
