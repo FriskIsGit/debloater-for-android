@@ -15,11 +15,11 @@ public class ADBMain{
         if(args.length == 0){
             System.out.println("Detecting ADB..");
             if (detectADBEnv()) {
-                CLI.run(ADBCommands.fromEnv());
+                CLI.start(ADBCommands.fromEnv());
                 return;
             }
             if (detectADBCmdEnv()) {
-                CLI.run(ADBCommands.fromCmdEnv());
+                CLI.start(ADBCommands.fromCmdEnv());
                 return;
             }
             String path = readPathFromCache();
@@ -28,7 +28,7 @@ public class ADBMain{
                 path = getValidPath();
             }
             cachePath(path);
-            CLI.run(ADBCommands.fromDir(path));
+            CLI.start(ADBCommands.fromDir(path));
             return;
         }
         //path arg/args provided
@@ -38,7 +38,7 @@ public class ADBMain{
             path = getValidPath();
         }
         cachePath(path);
-        CLI.run(ADBCommands.fromDir(path));
+        CLI.start(ADBCommands.fromDir(path));
     }
 
     private static boolean detectADBEnv() {
