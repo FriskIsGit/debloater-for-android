@@ -80,8 +80,8 @@ public class CLI {
             System.out.println("#3 Install apps (debug issues associated with broken functionalities) one by one," +
                     " include f after the number to install all without prompting (streamline)");
         }
-        // System.out.println("#4 Export user, system or all .apk files (base.apk)" +
-        //      " include a - all, user - u, system - s, after the number (default: u)");
+        System.out.println("#4 Export user, system or all .apk files (base.apk)" +
+                " include a - all, user - u, system - s, after the number (default: u)");
 
         Mode mode;
         while (true) {
@@ -143,7 +143,24 @@ public class CLI {
     }
 
     private void mode4(Mode mode) {
-
+        String output = commands.listPackagesBy(mode.type);
+        if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+            System.out.println("'pm list packages' command failed");
+            this.start();
+            return;
+        } else if (output.startsWith("package")) {
+            packages = Packages.parse(output);
+        } else {
+            System.err.println(output);
+            this.start();
+            return;
+        }
+        int success = 0, fail = 0, unknown = 0;
+        System.out.println(packages.getInstalled());
+        for (String pckg : packages.getInstalled()) {
+            output = commands.getPackagePath(pckg);
+            System.out.println(output);
+        }
     }
 
     private void mode3(boolean full) {
@@ -257,7 +274,7 @@ class Mode {
     private static final int MAX_MODE = 4;
     public int ordinal;
     public boolean full = false;
-    public PackageType type;
+    public PackageType type = PackageType.USER;
 
     public static Mode parse(String response, boolean missingPackages) {
         if (response.isEmpty() || !Character.isDigit(response.charAt(0))) {
@@ -313,6 +330,7 @@ class Mode {
         return "#" + ordinal + " package type: " + type;
     }
 }
+
 enum PackageType {
     SYSTEM, USER, ALL, INAPPLICABLE
 }
