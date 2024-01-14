@@ -60,7 +60,7 @@ public class ADBCommands {
             INSTALL_BACK = new String[]{"cmd", "/C", "adb", "shell", "pm", "install-existing", ""};
             DEVICES = new String[]{"cmd", "/C", "adb", "devices"};
             PM_PATH = new String[]{"cmd", "/C", "adb", "shell", "pm", "path", ""};
-            PULL = new String[]{"cmd", "/C", "adb", "pull", ""};
+            PULL = new String[]{"cmd", "/C", "adb", "pull", "", ""};
             LIST_PACKAGES_BY_TYPE = new String[]{"cmd", "/C", "adb", "shell", "pm", "list", "packages", ""};
             return;
         }
@@ -71,7 +71,7 @@ public class ADBCommands {
         INSTALL_BACK = new String[]{"adb", "shell", "pm", "install-existing", ""};
         DEVICES = new String[]{"adb", "devices"};
         PM_PATH = new String[]{"adb", "shell", "pm", "path", ""};
-        PULL = new String[]{"adb", "pull", ""};
+        PULL = new String[]{"adb", "pull", "", ""};
         LIST_PACKAGES_BY_TYPE = new String[]{"adb", "shell", "pm", "list", "packages", ""};
     }
 
@@ -82,7 +82,7 @@ public class ADBCommands {
         INSTALL_BACK = new String[]{adbPath, "shell", "pm", "install-existing", ""};
         DEVICES = new String[]{adbPath, "devices"};
         PM_PATH = new String[]{adbPath, "shell", "pm", "path", ""};
-        PULL = new String[]{adbPath, "pull", ""};
+        PULL = new String[]{adbPath, "pull", "", ""};
         LIST_PACKAGES_BY_TYPE = new String[]{adbPath, "shell", "pm", "list", "packages", ""};
     }
 
@@ -129,8 +129,9 @@ public class ADBCommands {
         PM_PATH[PM_PATH.length - 1] = pckgName;
         return executeCommand(PM_PATH);
     }
-    public String pullAPK(String apkPath) {
-        PULL[PULL.length - 1] = apkPath;
+    public String pullAPK(String apkPath, String toPath) {
+        PULL[PULL.length - 2] = apkPath;
+        PULL[PULL.length - 1] = toPath;
         return executeCommand(PULL);
     }
 

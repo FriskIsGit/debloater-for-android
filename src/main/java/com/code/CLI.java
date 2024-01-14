@@ -155,11 +155,57 @@ public class CLI {
             this.start();
             return;
         }
-        int success = 0, fail = 0, unknown = 0;
+        int success = 0, fail = 0;
+        File export = new File("export");
+        if (!export.exists() && !export.mkdirs()) {
+            System.err.println("Unable to create export directory");
+            return;
+        }
         System.out.println(packages.getInstalled());
+        System.out.println("Backing up " + packages.getInstalled().size() + " packages");
+        int counter = 1;
         for (String pckg : packages.getInstalled()) {
             output = commands.getPackagePath(pckg);
-            System.out.println(output);
+            if (output.isEmpty()) {
+                System.out.println(pckg + " is incorrectly displayed by the package manager as an existing package");
+                continue;
+            }
+            String[] apks = output.split("\\r?\\n");
+            for (int i = 0; i < apks.length; i++) {
+                // remove package: prefix from apk path
+                apks[i] = apks[i].substring(8);
+            }
+            File packageExport = new File("./export/" + pckg);
+            if (!packageExport.exists() && !packageExport.mkdirs()) {
+                System.err.println("Unable to create " + pckg + " directory");
+                return;
+            }
+            for (String apk : apks) {
+                String pullOutput = commands.pullAPK(apk, "./export/" + pckg);
+                System.out.println(pullOutput);
+                if (pullOutput.startsWith("adb: error:")) {
+                    fail++;
+                }
+                else {
+                    success++;
+                }
+            }
+            System.out.println("Packages processed: " + counter + " | Success: " + success + " | Failures: " + fail);
+            counter++;
+        }
+    }
+
+    private String getAPKName(String apkPath) {
+        int appIndex = apkPath.indexOf("app");
+        if (apkPath.charAt(appIndex + 4) == '~') {
+            // base64 path
+            int nameStart = apkPath.indexOf('/', appIndex + 4);
+            int nameEnd = apkPath.indexOf('-', nameStart + 2);
+            return apkPath.substring(nameStart + 1, nameEnd);
+        } else {
+            // unobfuscated
+            int nameEnd = apkPath.indexOf('/', appIndex + 4);
+            return apkPath.substring(appIndex + 4, nameEnd);
         }
     }
 
