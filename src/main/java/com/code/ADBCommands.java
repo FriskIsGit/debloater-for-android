@@ -1,8 +1,6 @@
 package com.code;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
@@ -20,8 +18,12 @@ public class ADBCommands {
     private String[] LIST_PACKAGES_BY_TYPE;
     private String[] PM_PATH;
     private String[] PULL;
+    private String[] PUSH;
     private String[] INSTALL_BACK;
     private String[] DEVICES;
+    private String[] INSTALL_CREATE;
+    private String[] INSTALL_WRITE;
+    private String[] INSTALL_COMMIT;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -62,7 +64,11 @@ public class ADBCommands {
         DEVICES = joinCommand(adbTerms, new String[]{"devices"});
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
+        PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages", ""});
+        INSTALL_CREATE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-create", "-S", ""});
+        INSTALL_WRITE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-write", "-S", "", "", "", ""});
+        INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"shell", "pm", "install-commit", ""});
     }
 
     private static String[] joinCommand(String[] terms, String[] command) {
@@ -115,10 +121,35 @@ public class ADBCommands {
         PM_PATH[PM_PATH.length - 1] = pckgName;
         return executeCommand(PM_PATH);
     }
+
     public String pullAPK(String apkPath, String toPath) {
         PULL[PULL.length - 2] = apkPath;
         PULL[PULL.length - 1] = toPath;
         return executeCommand(PULL);
+    }
+
+    public String push(String pcPath, String phonePath) {
+        PUSH[PUSH.length - 2] = pcPath;
+        PUSH[PUSH.length - 1] = phonePath;
+        return executeCommand(PUSH);
+    }
+
+    public String createInstall(int totalSizeBytes) {
+        INSTALL_CREATE[INSTALL_CREATE.length - 1] = String.valueOf(totalSizeBytes);
+        return executeCommand(INSTALL_CREATE);
+    }
+
+    public String installWrite(int splitApkSize, int sessionId, int index, String path) {
+        INSTALL_WRITE[INSTALL_WRITE.length - 4] = String.valueOf(splitApkSize);
+        INSTALL_WRITE[INSTALL_WRITE.length - 3] = String.valueOf(sessionId);
+        INSTALL_WRITE[INSTALL_WRITE.length - 2] = String.valueOf(index);
+        INSTALL_WRITE[INSTALL_WRITE.length - 1] = path;
+        return executeCommand(INSTALL_WRITE);
+    }
+
+    public String installCommit(int sessionId) {
+        INSTALL_COMMIT[INSTALL_COMMIT.length - 1] = String.valueOf(sessionId);
+        return executeCommand(INSTALL_COMMIT);
     }
 
     public String installPackage(String pckgName, int maxOutputLen) {
@@ -133,6 +164,7 @@ public class ADBCommands {
     public String listPackages() {
         return executeCommand(LIST_PACKAGES);
     }
+
     public String listPackagesBy(PackageType type) {
         String modifier = null;
         switch (type) {

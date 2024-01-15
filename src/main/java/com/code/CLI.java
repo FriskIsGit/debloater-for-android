@@ -12,7 +12,7 @@ public class CLI {
     private ADBCommands commands;
     private List<String> bloatedPackages;
     private Scanner scanner;
-    private Packages packages;
+    private Set<String> packages;
     private boolean error_fallback, missingPackages;
 
 
@@ -40,7 +40,7 @@ public class CLI {
             System.err.println("Error reading packages with file.. exiting");
             return;
         }
-        System.out.println(bloatedPackages.size() + " loaded with ");
+        System.out.println(bloatedPackages.size() + " packages loaded from packages.txt:");
         System.out.println(bloatedPackages);
     }
 
@@ -161,10 +161,10 @@ public class CLI {
             System.err.println("Unable to create export directory");
             return;
         }
-        System.out.println(packages.getInstalled());
-        System.out.println("Backing up " + packages.getInstalled().size() + " packages");
+        System.out.println(packages);
+        System.out.println("Backing up " + packages.size() + " packages");
         int counter = 1;
-        for (String pckg : packages.getInstalled()) {
+        for (String pckg : packages) {
             output = commands.getPackagePath(pckg);
             if (output.isEmpty()) {
                 System.out.println(pckg + " is incorrectly displayed by the package manager as an existing package");
@@ -238,12 +238,14 @@ public class CLI {
 
     private void mode2(boolean full) {
         String output = commands.listPackages();
-        if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+        if (output.startsWith("package")) {
+            packages = Packages.parse(output);
+            // retain these that are installed
+            bloatedPackages.retainAll(packages);
+        }
+        else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
             System.out.println("'pm list packages' command failed");
             error_fallback = true;
-        } else if (output.startsWith("package")) {
-            packages = Packages.parse(output);
-            packages.resolveExisting(bloatedPackages);
         } else {
             error_fallback = true;
             System.err.println(output);
@@ -251,13 +253,13 @@ public class CLI {
         if (error_fallback) {
             System.out.println("Uninstall possibly " + bloatedPackages.size() + " packages? (y/n)");
         } else {
-            if (packages.bloatedCount() == 0) {
+            if (bloatedPackages.size() == 0) {
                 System.out.println("No bloated packages found on the device. Exiting ..");
                 restoreCommandInfo();
                 return;
             }
-            System.out.println(packages.getInstalledBloated());
-            System.out.println("Uninstall " + (full ? "fully " : "") + packages.bloatedCount() + " packages? (y/n)");
+            System.out.println(bloatedPackages);
+            System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages? (y/n)");
         }
 
         boolean usePrefix = false;
@@ -282,10 +284,6 @@ public class CLI {
 
         for (String currentPackage : bloatedPackages) {
             if (usePrefix && !currentPackage.startsWith(prefix)) {
-                continue;
-            }
-
-            if (!error_fallback && !packages.isBloated(currentPackage)) {
                 continue;
             }
 
