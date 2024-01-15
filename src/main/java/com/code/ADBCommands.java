@@ -10,6 +10,7 @@ public class ADBCommands {
     public static final String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
     public static final String DISABLE_APP_COMMAND_1 = "pm disable PACKAGE";
     public static final String DISABLE_APP_COMMAND_2 = "pm disable-user PACKAGE";
+    public static final String FULL_BACKUP_COMMAND = "adb backup -apk -obb -shared -all -system -f backup.ab";
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private String[] UNINSTALL_KEEP;
@@ -69,6 +70,7 @@ public class ADBCommands {
         INSTALL_CREATE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-create", "-S", ""});
         INSTALL_WRITE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-write", "-S", "", "", "", ""});
         INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"shell", "pm", "install-commit", ""});
+        INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"backup", "pm", "install-commit", ""});
     }
 
     private static String[] joinCommand(String[] terms, String[] command) {

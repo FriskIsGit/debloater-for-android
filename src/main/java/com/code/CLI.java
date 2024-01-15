@@ -64,24 +64,28 @@ public class CLI {
                 scanner.nextLine();
             }
             runDevicesStage();
+        } else if (devices > 1) {
+            System.err.println("Error: more than one device/emulator");
         }
     }
 
     private Mode selectMode() {
         System.out.println("Select number:");
+        System.out.println("----------------");
         System.out.println("#1 Uninstall package by name");
         if (!missingPackages) {
-            System.out.println("#2 Find all installed bloated packages to cut down on waiting time");
+            System.out.println("#2 Uninstall bloated packages listed in packages.txt (will prompt before proceeding)");
         }
         System.out.println("note: For full app removal - deleting data and cache directories of an app," +
                 " include f after the number (1f or 2f).");
 
+        System.out.println("#3 Export many apks. Include a - all, user - u, system - s, after the number (default: u)");
+        System.out.println("#4 Export an apk by package name.");
+
         if (!missingPackages) {
-            System.out.println("#3 Install apps (debug issues associated with broken functionalities) one by one," +
+            System.out.println("#5 Install apps from packages.txt one by one (debug broken functionality)," +
                     " include f after the number to install all without prompting (streamline)");
         }
-        System.out.println("#4 Export user, system or all .apk files (base.apk)" +
-                " include a - all, user - u, system - s, after the number (default: u)");
 
         Mode mode;
         while (true) {
@@ -119,6 +123,7 @@ public class CLI {
             if (output.startsWith("device", i)) {
                 devices++;
             }
+            // else "unauthorized" or "authorizing"
         }
         return devices;
     }
@@ -132,30 +137,69 @@ public class CLI {
                 mode2(mode.full);
                 break;
             case 3: {
-                mode3(mode.full);
+                mode3(mode);
                 System.exit(0);
             }
             case 4: {
-                mode4(mode);
+                mode4();
+                System.exit(0);
+            }
+            case 5: {
+                mode5(mode.full);
                 System.exit(0);
             }
         }
     }
 
-    private void mode4(Mode mode) {
+    private void mode4() {
+        File export = new File("export");
+        if (!export.exists() && !export.mkdirs()) {
+            System.err.println("Unable to create export directory");
+            return;
+        }
+        System.out.println("Provide package name to export: ");
+        String pckg = scanner.nextLine();
+        String output = commands.getPackagePath(pckg);
+        if (output.isEmpty()) {
+            System.out.println(pckg + " doesn't exist?");
+            mode4();
+        }
+        String[] apks = output.split("\\r?\\n");
+        for (int i = 0; i < apks.length; i++) {
+            // remove package: prefix from apk path
+            apks[i] = apks[i].substring(8);
+        }
+        File packageExport = new File("./export/" + pckg);
+        if (!packageExport.exists() && !packageExport.mkdirs()) {
+            System.err.println("Unable to create " + pckg + " directory");
+            return;
+        }
+        for (String apk : apks) {
+            String pullOutput = commands.pullAPK(apk, "./export/" + pckg);
+            System.out.println(pullOutput);
+        }
+        mode4();
+    }
+
+    private void mode3(Mode mode) {
+        if (mode.type == PackageType.INAPPLICABLE) {
+            System.out.println("Invalid package type.. exiting");
+            System.exit(0);
+        }
         String output = commands.listPackagesBy(mode.type);
-        if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
-            System.out.println("'pm list packages' command failed");
+        if (output.startsWith("package")) {
+            packages = Packages.parse(output);
+        }
+        else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+            System.out.println("'pm list packages' command failed - can't export");
             this.start();
             return;
-        } else if (output.startsWith("package")) {
-            packages = Packages.parse(output);
         } else {
             System.err.println(output);
             this.start();
             return;
         }
-        int success = 0, fail = 0;
+        int pulled = 0, errors = 0;
         File export = new File("export");
         if (!export.exists() && !export.mkdirs()) {
             System.err.println("Unable to create export directory");
@@ -164,6 +208,7 @@ public class CLI {
         System.out.println(packages);
         System.out.println("Backing up " + packages.size() + " packages");
         int counter = 1;
+        long st = System.currentTimeMillis();
         for (String pckg : packages) {
             output = commands.getPackagePath(pckg);
             if (output.isEmpty()) {
@@ -184,15 +229,18 @@ public class CLI {
                 String pullOutput = commands.pullAPK(apk, "./export/" + pckg);
                 System.out.println(pullOutput);
                 if (pullOutput.startsWith("adb: error:")) {
-                    fail++;
+                    errors++;
                 }
                 else {
-                    success++;
+                    pulled++;
                 }
             }
-            System.out.println("Packages processed: " + counter + " | Success: " + success + " | Failures: " + fail);
+            long now = System.currentTimeMillis();
+            System.out.println("Packages exported: " + counter + " | Pulls: " + pulled + " | Errors: " + errors + " | " + (now-st) + " ms elapsed");
             counter++;
         }
+        long end = System.currentTimeMillis();
+        System.out.println("Time taken: " + (end-st) + " ms");
     }
 
     private String getAPKName(String apkPath) {
@@ -209,7 +257,7 @@ public class CLI {
         }
     }
 
-    private void mode3(boolean full) {
+    private void mode5(boolean full) {
         int success = 0, fail = 0, unknown = 0;
         for (String bloated : bloatedPackages) {
             System.out.println("Attempting install of: " + bloated);
@@ -315,7 +363,7 @@ public class CLI {
 
 class Mode {
     private static final int MIN_MODE = 1;
-    private static final int MAX_MODE = 4;
+    private static final int MAX_MODE = 5;
     public int ordinal;
     public boolean full = false;
     public PackageType type = PackageType.USER;
@@ -333,12 +381,11 @@ class Mode {
             return null;
         }
         // don't allow selection of modes for which packages.txt is required
-        if ((missingPackages && (modeNum == 2 || modeNum == 3))) {
+        if ((missingPackages && (modeNum == 2 || modeNum == 5))) {
             return null;
         }
 
         char secondChr = response.charAt(1);
-        boolean isFull = secondChr == 'f';
         PackageType type;
         switch (secondChr) {
             case 's':
@@ -353,7 +400,7 @@ class Mode {
             default:
                 type = PackageType.INAPPLICABLE;
         }
-        return new Mode(modeNum, isFull, type);
+        return new Mode(modeNum, secondChr == 'f', type);
     }
 
     private Mode(int ordinal) {
@@ -368,10 +415,9 @@ class Mode {
 
     @Override
     public String toString() {
-        if (ordinal < 4) {
-            return "#" + ordinal + (full ? " full" : "");
-        }
-        return "#" + ordinal + " package type: " + type;
+        String fullLabel = (full ? " full" : "");
+        String packageLabel = (type != PackageType.INAPPLICABLE ? type.toString() : "");
+        return "#" + ordinal +  fullLabel + " " + packageLabel;
     }
 }
 
