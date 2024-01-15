@@ -1,6 +1,8 @@
 package com.code;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
@@ -33,14 +35,14 @@ public class ADBCommands {
     public static ADBCommands fromEnv() {
         //execute with anywhere since adb is seen as a program, usually Linux
         ADBCommands commands = new ADBCommands();
-        commands.setupCommands(false);
+        commands.setupCommands("adb");
         return commands;
     }
 
     public static ADBCommands fromCmdEnv() {
         //execute through cmd because the env var is only recognized by cmd
         ADBCommands commands = new ADBCommands();
-        commands.setupCommands(true);
+        commands.setupCommands("cmd", "/c", "adb");
         return commands;
     }
 
@@ -52,38 +54,22 @@ public class ADBCommands {
         }
     }
 
-    private void setupCommands(boolean cmd) {
-        if (cmd) {
-            UNINSTALL_KEEP = new String[]{"cmd", "/C", "adb", "shell", "pm", "uninstall", "-k", "--user 0", ""};
-            UNINSTALL_FULL = new String[]{"cmd", "/C", "adb", "shell", "pm", "uninstall", "--user 0", ""};
-            LIST_PACKAGES = new String[]{"cmd", "/C", "adb", "shell", "pm", "list", "packages"};
-            INSTALL_BACK = new String[]{"cmd", "/C", "adb", "shell", "pm", "install-existing", ""};
-            DEVICES = new String[]{"cmd", "/C", "adb", "devices"};
-            PM_PATH = new String[]{"cmd", "/C", "adb", "shell", "pm", "path", ""};
-            PULL = new String[]{"cmd", "/C", "adb", "pull", "", ""};
-            LIST_PACKAGES_BY_TYPE = new String[]{"cmd", "/C", "adb", "shell", "pm", "list", "packages", ""};
-            return;
-        }
-
-        UNINSTALL_KEEP = new String[]{"adb", "shell", "pm", "uninstall", "-k", "--user 0", ""};
-        UNINSTALL_FULL = new String[]{"adb", "shell", "pm", "uninstall", "--user 0", ""};
-        LIST_PACKAGES = new String[]{"adb", "shell", "pm", "list", "packages"};
-        INSTALL_BACK = new String[]{"adb", "shell", "pm", "install-existing", ""};
-        DEVICES = new String[]{"adb", "devices"};
-        PM_PATH = new String[]{"adb", "shell", "pm", "path", ""};
-        PULL = new String[]{"adb", "pull", "", ""};
-        LIST_PACKAGES_BY_TYPE = new String[]{"adb", "shell", "pm", "list", "packages", ""};
+    private void setupCommands(String... adbTerms) {
+        UNINSTALL_KEEP = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "-k", "--user 0", ""});
+        UNINSTALL_FULL = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "--user 0", ""});
+        LIST_PACKAGES = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages"});
+        INSTALL_BACK = joinCommand(adbTerms, new String[]{"shell", "pm", "install-existing", ""});
+        DEVICES = joinCommand(adbTerms, new String[]{"devices"});
+        PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
+        PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
+        LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages", ""});
     }
 
-    private void setupCommands(String adbPath) {
-        UNINSTALL_KEEP = new String[]{adbPath, "shell", "pm", "uninstall", "-k", "--user 0", ""};
-        UNINSTALL_FULL = new String[]{adbPath, "shell", "pm", "uninstall", "--user 0", ""};
-        LIST_PACKAGES = new String[]{adbPath, "shell", "pm", "list", "packages"};
-        INSTALL_BACK = new String[]{adbPath, "shell", "pm", "install-existing", ""};
-        DEVICES = new String[]{adbPath, "devices"};
-        PM_PATH = new String[]{adbPath, "shell", "pm", "path", ""};
-        PULL = new String[]{adbPath, "pull", "", ""};
-        LIST_PACKAGES_BY_TYPE = new String[]{adbPath, "shell", "pm", "list", "packages", ""};
+    private static String[] joinCommand(String[] terms, String[] command) {
+        String[] joined = new String[terms.length + command.length];
+        System.arraycopy(terms, 0, joined, 0, terms.length);
+        System.arraycopy(command, 0, joined, terms.length, command.length);
+        return joined;
     }
 
     public String executeCommand(String[] commands) {
