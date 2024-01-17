@@ -68,5 +68,6 @@ java com.code.ADBMain
 ## Modes
 #### `1` Uninstall package by name
 #### `2` Uninstall apps listed in packages.txt
-#### `3` Install back apps listed in packages.txt
-#### `4` Export apps (.apks) installed on device
+#### `3` Export apps (.apks) installed on device
+#### `4` Export .apk by name
+#### `5` Install back apps listed in packages.txt
