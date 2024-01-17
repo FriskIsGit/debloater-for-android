@@ -420,7 +420,3 @@ class Mode {
         return "#" + ordinal +  fullLabel + " " + packageLabel;
     }
 }
-
-enum PackageType {
-    SYSTEM, USER, ALL, INAPPLICABLE
-}

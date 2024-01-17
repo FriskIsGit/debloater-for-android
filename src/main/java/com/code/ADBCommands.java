@@ -186,3 +186,7 @@ public class ADBCommands {
         return executeCommand(LIST_PACKAGES_BY_TYPE);
     }
 }
+
+enum PackageType {
+    SYSTEM, USER, ALL, INAPPLICABLE
+}
