@@ -19,12 +19,14 @@ public class ADBCommands {
     private String[] LIST_PACKAGES_BY_TYPE;
     private String[] PM_PATH;
     private String[] PULL;
-    private String[] PUSH;
+    private String[] ADB_PUSH;
     private String[] INSTALL_BACK;
     private String[] DEVICES;
     private String[] INSTALL_CREATE;
     private String[] INSTALL_WRITE;
     private String[] INSTALL_COMMIT;
+    private String[] ADB_INSTALL;
+    private String[] ADB_INSTALL_MULTIPLE;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -65,12 +67,13 @@ public class ADBCommands {
         DEVICES = joinCommand(adbTerms, new String[]{"devices"});
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
-        PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
+        ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages", ""});
         INSTALL_CREATE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-create", "-S", ""});
         INSTALL_WRITE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-write", "-S", "", "", "", ""});
         INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"shell", "pm", "install-commit", ""});
-        INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"backup", "pm", "install-commit", ""});
+        ADB_INSTALL = joinCommand(adbTerms, new String[]{"install", ""});
+        ADB_INSTALL_MULTIPLE = joinCommand(adbTerms, new String[]{"install-multiple"});
     }
 
     private static String[] joinCommand(String[] terms, String[] command) {
@@ -131,17 +134,25 @@ public class ADBCommands {
     }
 
     public String push(String pcPath, String phonePath) {
-        PUSH[PUSH.length - 2] = pcPath;
-        PUSH[PUSH.length - 1] = phonePath;
-        return executeCommand(PUSH);
+        ADB_PUSH[ADB_PUSH.length - 2] = pcPath;
+        ADB_PUSH[ADB_PUSH.length - 1] = phonePath;
+        return executeCommand(ADB_PUSH);
     }
 
+    public String install(String path) {
+        ADB_INSTALL[ADB_INSTALL.length - 1] = path;
+        return executeCommand(ADB_INSTALL);
+    }
     public String createInstall(int totalSizeBytes) {
         INSTALL_CREATE[INSTALL_CREATE.length - 1] = String.valueOf(totalSizeBytes);
         return executeCommand(INSTALL_CREATE);
     }
 
-    public String installWrite(int splitApkSize, int sessionId, int index, String path) {
+    public String installMultiple(String[] apks) {
+        String[] installMultiple = joinCommand(ADB_INSTALL_MULTIPLE, apks);
+        return executeCommand(installMultiple);
+    }
+    public String installWrite(long splitApkSize, int sessionId, int index, String path) {
         INSTALL_WRITE[INSTALL_WRITE.length - 4] = String.valueOf(splitApkSize);
         INSTALL_WRITE[INSTALL_WRITE.length - 3] = String.valueOf(sessionId);
         INSTALL_WRITE[INSTALL_WRITE.length - 2] = String.valueOf(index);

@@ -9,6 +9,7 @@ public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
     private static final boolean SIMULATE_DEVICE = false;
 
+
     private ADBCommands commands;
     private List<String> bloatedPackages;
     private Scanner scanner;
@@ -47,7 +48,12 @@ public class CLI {
     protected void start() {
         runDevicesStage();
         Mode mode = selectMode();
-        runMode(mode);
+        while(true) {
+            boolean rerun = runMode(mode);
+            if (!rerun) {
+                mode = selectMode();
+            }
+        }
     }
 
     private void runDevicesStage() {
@@ -87,6 +93,8 @@ public class CLI {
                     " include f after the number to install all without prompting (streamline)");
         }
 
+        System.out.println("#6 Install apps from /export one by one");
+
         Mode mode;
         while (true) {
             String response = scanner.nextLine().toLowerCase();
@@ -110,7 +118,6 @@ public class CLI {
         String pckg = scanner.nextLine();
         String result = isFull ? commands.uninstallPackageFully(pckg) : commands.uninstallPackage(pckg);
         System.out.println(result);
-        mode1(isFull);
     }
 
     private int devicesConnected(String output) {
@@ -128,26 +135,66 @@ public class CLI {
         return devices;
     }
 
-    private void runMode(Mode mode) {
+    private boolean runMode(Mode mode) {
         switch (mode.ordinal) {
             case 1:
                 mode1(mode.full);
-                break;
+                return true;
             case 2:
                 mode2(mode.full);
                 break;
             case 3: {
                 mode3(mode);
-                System.exit(0);
+                break;
             }
             case 4: {
                 mode4();
-                System.exit(0);
+                return true;
             }
             case 5: {
                 mode5(mode.full);
-                System.exit(0);
+                break;
             }
+            case 6: {
+                mode6();
+                break;
+            }
+        }
+        return false;
+    }
+
+    private void mode6() {
+        File export = new File("export");
+        if (!export.exists()) {
+            System.err.println("Create an export or put an .apk in export/com.app.name/");
+            return;
+        }
+        File[] apkDirs = export.listFiles(File::isDirectory);
+        assert apkDirs != null;
+        System.out.println("Install possibly " + apkDirs.length + " APKs? (y/n)");
+        if (!scanner.nextLine().toLowerCase().startsWith("y")) {
+            return;
+        }
+
+
+        for (File apkDir : apkDirs) {
+            System.out.println("Installing " + apkDir.getName());
+            File[] apks = apkDir.listFiles(file -> file.isFile() && file.getName().endsWith(".apk"));
+            assert apks != null;
+            if (apks.length == 1) {
+                String output = commands.install(apks[0].getPath());
+                System.out.println(output);
+                continue;
+            }
+
+            String[] apkPaths = new String[apks.length];
+            int index = 0;
+            for(File apk : apks) {
+                apkPaths[index] = apk.getPath();
+                index++;
+            }
+            String installOutput = commands.installMultiple(apkPaths);
+            System.out.println(installOutput);
         }
     }
 
@@ -162,11 +209,18 @@ public class CLI {
         String output = commands.getPackagePath(pckg);
         if (output.isEmpty()) {
             System.out.println(pckg + " doesn't exist?");
-            mode4();
+            return;
         }
         String[] apks = output.split("\\r?\\n");
+        if (apks.length == 0) {
+            System.out.println("Nothing to export.");
+            return;
+        }
         for (int i = 0; i < apks.length; i++) {
             // remove package: prefix from apk path
+            if(apks[i].length() < 8) {
+                continue;
+            }
             apks[i] = apks[i].substring(8);
         }
         File packageExport = new File("./export/" + pckg);
@@ -175,10 +229,12 @@ public class CLI {
             return;
         }
         for (String apk : apks) {
+            if(apk.isEmpty()) {
+                continue;
+            }
             String pullOutput = commands.pullAPK(apk, "./export/" + pckg);
             System.out.println(pullOutput);
         }
-        mode4();
     }
 
     private void mode3(Mode mode) {
@@ -363,7 +419,7 @@ public class CLI {
 
 class Mode {
     private static final int MIN_MODE = 1;
-    private static final int MAX_MODE = 5;
+    private static final int MAX_MODE = 6;
     public int ordinal;
     public boolean full = false;
     public PackageType type = PackageType.USER;
