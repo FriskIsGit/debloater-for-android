@@ -277,11 +277,8 @@ public class CLI {
                 System.err.println(pckg + " is incorrectly displayed by the package manager as an existing package");
                 continue;
             }
-            String[] apks = output.split("\\r?\\n");
-            for (int i = 0; i < apks.length; i++) {
-                // remove package: prefix from apk path
-                apks[i] = apks[i].substring(8);
-            }
+            List<String> apks = Packages.parseToList(output);
+            // System.out.println("PACKAGE PATH PARSED: " + apks);
             File packageExport = new File("./export/" + pckg);
             if (!packageExport.exists() && !packageExport.mkdirs()) {
                 System.err.println("Unable to create " + pckg + " directory");

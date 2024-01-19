@@ -28,6 +28,29 @@ public class Packages {
         }
         return packages;
     }
+    public static List<String> parseToList(String output) {
+        List<String> packages = new ArrayList<>();
+        int outputLen = output.length();
+        for (int i = 0; i < outputLen; i++) {
+            int colon = output.indexOf(':', i);
+            if (colon == -1) {
+                break;
+            }
+            int packageEnd = colon + 1;
+            pkg_name_loop:
+            for (;packageEnd < outputLen; packageEnd++) {
+                switch (output.charAt(packageEnd)) {
+                    case '\r':
+                    case '\n':
+                        break pkg_name_loop;
+                }
+            }
+            String packageName = output.substring(colon + 1, packageEnd);
+            packages.add(packageName);
+            i = packageEnd;
+        }
+        return packages;
+    }
 
     public static String sortByGroups(Set<String> packageNames) {
         HashMap<String, List<String>> groupsToPackages = new HashMap<>();
