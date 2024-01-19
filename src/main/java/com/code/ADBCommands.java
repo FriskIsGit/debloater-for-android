@@ -83,19 +83,7 @@ public class ADBCommands {
         return joined;
     }
 
-    public String executeCommand(String[] commands) {
-        procBuilder.command(commands);
-        try {
-            Process proc = procBuilder.start();
-            proc.waitFor(3, TimeUnit.SECONDS);
-            return Utilities.readFully(proc.getInputStream());
-        } catch (IOException | InterruptedException exceptions) {
-            exceptions.printStackTrace();
-            return "";
-        }
-    }
-
-    public String executeCommand(String[] commands, int maxLen) {
+    public String executeCommandTrim(String[] commands, int maxLen) {
         procBuilder.command(commands);
         try {
             Process proc = procBuilder.start();
@@ -107,75 +95,89 @@ public class ADBCommands {
         }
     }
 
+    public String executeCommandWithTimeout(String[] commands, long timeoutMs) {
+        procBuilder.command(commands);
+        try {
+            Process proc = procBuilder.start();
+            proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
+            return Utilities.readFully(proc.getInputStream());
+        } catch (IOException | InterruptedException exceptions) {
+            exceptions.printStackTrace();
+            return "";
+        }
+    }
+
     public String uninstallPackageFully(String pckgName) {
         UNINSTALL_FULL[UNINSTALL_FULL.length - 1] = pckgName;
-        return executeCommand(UNINSTALL_FULL);
+        return executeCommandWithTimeout(UNINSTALL_FULL, 3000);
     }
 
     public String uninstallPackage(String pckgName) {
         UNINSTALL_KEEP[UNINSTALL_KEEP.length - 1] = pckgName;
-        return executeCommand(UNINSTALL_KEEP);
+        return executeCommandWithTimeout(UNINSTALL_KEEP, 3000);
     }
 
     public String installPackage(String pckgName) {
         INSTALL_BACK[INSTALL_BACK.length - 1] = pckgName;
-        return executeCommand(INSTALL_BACK);
+        return executeCommandWithTimeout(INSTALL_BACK, 3000);
     }
 
     public String getPackagePath(String pckgName) {
         PM_PATH[PM_PATH.length - 1] = pckgName;
-        return executeCommand(PM_PATH);
+        return executeCommandWithTimeout(PM_PATH, 3000);
     }
 
     public String pullAPK(String apkPath, String toPath) {
         PULL[PULL.length - 2] = apkPath;
         PULL[PULL.length - 1] = toPath;
-        return executeCommand(PULL);
+        return executeCommandWithTimeout(PULL, 3000);
     }
 
     public String push(String pcPath, String phonePath) {
         ADB_PUSH[ADB_PUSH.length - 2] = pcPath;
         ADB_PUSH[ADB_PUSH.length - 1] = phonePath;
-        return executeCommand(ADB_PUSH);
+        return executeCommandWithTimeout(ADB_PUSH, 3000);
     }
 
     public String install(String path) {
         ADB_INSTALL[ADB_INSTALL.length - 1] = path;
-        return executeCommand(ADB_INSTALL);
+        return executeCommandWithTimeout(ADB_INSTALL, 3000);
     }
     public String createInstall(int totalSizeBytes) {
         INSTALL_CREATE[INSTALL_CREATE.length - 1] = String.valueOf(totalSizeBytes);
-        return executeCommand(INSTALL_CREATE);
+        return executeCommandWithTimeout(INSTALL_CREATE, 3000);
     }
 
     public String installMultiple(String[] apks) {
         String[] installMultiple = joinCommand(ADB_INSTALL_MULTIPLE, apks);
-        return executeCommand(installMultiple);
+        return executeCommandWithTimeout(installMultiple, 3000);
     }
     public String installWrite(long splitApkSize, int sessionId, int index, String path) {
         INSTALL_WRITE[INSTALL_WRITE.length - 4] = String.valueOf(splitApkSize);
         INSTALL_WRITE[INSTALL_WRITE.length - 3] = String.valueOf(sessionId);
         INSTALL_WRITE[INSTALL_WRITE.length - 2] = String.valueOf(index);
         INSTALL_WRITE[INSTALL_WRITE.length - 1] = path;
-        return executeCommand(INSTALL_WRITE);
+        return executeCommandWithTimeout(INSTALL_WRITE, 3000);
     }
 
     public String installCommit(int sessionId) {
         INSTALL_COMMIT[INSTALL_COMMIT.length - 1] = String.valueOf(sessionId);
-        return executeCommand(INSTALL_COMMIT);
+        return executeCommandWithTimeout(INSTALL_COMMIT, 3000);
     }
 
     public String installPackage(String pckgName, int maxOutputLen) {
         INSTALL_BACK[INSTALL_BACK.length - 1] = pckgName;
-        return executeCommand(INSTALL_BACK, maxOutputLen);
+        return executeCommandTrim(INSTALL_BACK, maxOutputLen);
     }
 
+    // These commands don't require a timeout
     public String listDevices() {
-        return executeCommand(DEVICES);
+        return executeCommandWithTimeout(DEVICES, 50);
     }
 
+    // But it makes them more reliable
     public String listPackages() {
-        return executeCommand(LIST_PACKAGES);
+        return executeCommandWithTimeout(LIST_PACKAGES, 50);
     }
 
     public String listPackagesBy(PackageType type) {
@@ -194,7 +196,7 @@ public class ADBCommands {
                 throw new RuntimeException("How did we get here?");
         }
         LIST_PACKAGES_BY_TYPE[LIST_PACKAGES_BY_TYPE.length - 1] = modifier;
-        return executeCommand(LIST_PACKAGES_BY_TYPE);
+        return executeCommandWithTimeout(LIST_PACKAGES_BY_TYPE, 50);
     }
 }
 

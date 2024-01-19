@@ -170,7 +170,10 @@ public class CLI {
             return;
         }
         File[] apkDirs = export.listFiles(File::isDirectory);
-        assert apkDirs != null;
+        if (apkDirs == null || apkDirs.length == 0) {
+            System.err.println("There's nothing to install back.");
+            return;
+        }
         System.out.println("Install possibly " + apkDirs.length + " APKs? (y/n)");
         if (!scanner.nextLine().toLowerCase().startsWith("y")) {
             return;
@@ -208,12 +211,12 @@ public class CLI {
         String pckg = scanner.nextLine();
         String output = commands.getPackagePath(pckg);
         if (output.isEmpty()) {
-            System.out.println(pckg + " doesn't exist?");
+            System.err.println(pckg + " doesn't exist?");
             return;
         }
         String[] apks = output.split("\\r?\\n");
         if (apks.length == 0) {
-            System.out.println("Nothing to export.");
+            System.err.println("Nothing to export.");
             return;
         }
         for (int i = 0; i < apks.length; i++) {
@@ -239,7 +242,7 @@ public class CLI {
 
     private void mode3(Mode mode) {
         if (mode.type == PackageType.INAPPLICABLE) {
-            System.out.println("Invalid package type.. exiting");
+            System.err.println("Invalid package type.. exiting");
             System.exit(0);
         }
         String output = commands.listPackagesBy(mode.type);
@@ -247,7 +250,7 @@ public class CLI {
             packages = Packages.parse(output);
         }
         else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
-            System.out.println("'pm list packages' command failed - can't export");
+            System.err.println("'pm list packages' command failed - can't export");
             this.start();
             return;
         } else {
@@ -262,13 +265,16 @@ public class CLI {
             return;
         }
         System.out.println(packages);
-        System.out.println("Backing up " + packages.size() + " packages");
+        System.out.println("Backing up " + packages.size() + " packages, proceed? (y/n)");
+        if (!scanner.nextLine().toLowerCase().startsWith("y")) {
+            return;
+        }
         int counter = 1;
         long st = System.currentTimeMillis();
         for (String pckg : packages) {
             output = commands.getPackagePath(pckg);
             if (output.isEmpty()) {
-                System.out.println(pckg + " is incorrectly displayed by the package manager as an existing package");
+                System.err.println(pckg + " is incorrectly displayed by the package manager as an existing package");
                 continue;
             }
             String[] apks = output.split("\\r?\\n");
@@ -314,7 +320,7 @@ public class CLI {
     }
 
     private void mode5(boolean full) {
-        int success = 0, fail = 0, unknown = 0;
+        int success = 0, fail = 0;
         for (String bloated : bloatedPackages) {
             System.out.println("Attempting install of: " + bloated);
             String output = commands.installPackage(bloated, 56);
@@ -326,11 +332,11 @@ public class CLI {
                 fail++;
                 continue;
             } else if (output.isEmpty()) {
-                System.out.println("Unauthorized/timed out");
+                System.err.println("Unauthorized/timed out");
             } else if (output.startsWith("Error: unknown command") || output.startsWith("/system/bin/sh: cmd: not found")) {
-                System.out.println("Install-existing is not a command recognized by Android");
+                System.err.println("Install-existing is not a command recognized by Android");
             } else {
-                System.out.println(output);
+                System.err.println(output);
             }
 
             System.out.println("Results[success:" + success + ',' + " fail:" + fail + ']');
@@ -344,6 +350,7 @@ public class CLI {
         String output = commands.listPackages();
         if (output.startsWith("package")) {
             packages = Packages.parse(output);
+            System.out.println("Found " + packages.size() + " packages installed on device.");
             // retain these that are installed
             bloatedPackages.retainAll(packages);
         }
@@ -357,7 +364,7 @@ public class CLI {
         if (error_fallback) {
             System.out.println("Uninstall possibly " + bloatedPackages.size() + " packages? (y/n)");
         } else {
-            if (bloatedPackages.size() == 0) {
+            if (bloatedPackages.isEmpty()) {
                 System.out.println("No bloated packages found on the device. Exiting ..");
                 restoreCommandInfo();
                 return;
