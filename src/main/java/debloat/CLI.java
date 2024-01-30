@@ -1,5 +1,5 @@
 
-package com.code;
+package debloat;
 
 import java.io.*;
 import java.net.URL;
@@ -27,7 +27,7 @@ public class CLI {
     protected void loadAndInit() {
         scanner = new Scanner(System.in);
         //bloated packages db file
-        URL url = ADBMain.class.getResource(PACKAGES_SRC);
+        URL url = Main.class.getResource(PACKAGES_SRC);
         if (url == null) {
             System.err.println("Couldn't find/load: " + PACKAGES_SRC);
             missingPackages = true;

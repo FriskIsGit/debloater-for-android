@@ -1,4 +1,4 @@
-package com.code;
+package debloat;
 
 import java.io.*;
 import java.net.URL;
@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-public class ADBMain {
+public class Main {
     private static boolean ENSURE_ADB_EXISTS = true;
     private static boolean CACHE_ADB_PATH = true;
 
@@ -76,7 +76,7 @@ public class ADBMain {
         if (!CACHE_ADB_PATH) {
             return;
         }
-        URL url = ADBMain.class.getProtectionDomain().getCodeSource().getLocation();
+        URL url = Main.class.getProtectionDomain().getCodeSource().getLocation();
         String executingPath = Utilities.convertURLToString(url);
         int lastSlash = executingPath.lastIndexOf('/');
         Path cachePath = Paths.get(executingPath.substring(0, lastSlash) + "/cache.txt");
@@ -95,7 +95,7 @@ public class ADBMain {
         if (!CACHE_ADB_PATH) {
             return null;
         }
-        URL url = ADBMain.class.getProtectionDomain().getCodeSource().getLocation();
+        URL url = Main.class.getProtectionDomain().getCodeSource().getLocation();
         String executingPath = Utilities.convertURLToString(url);
         int lastSlash = executingPath.lastIndexOf('/');
         executingPath = executingPath.substring(0, lastSlash);

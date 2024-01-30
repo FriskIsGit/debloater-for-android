@@ -36,16 +36,16 @@ $ cd debloater-for-android/src/main/java
 # Move (or copy) packages.txt to the working directory
 $ mv ../resources/packages.txt .
 
-# Compile all .java files where ADBMain.java is the entry point file
-$ javac -cp . com/code/ADBMain.java
+# Compile all .java files where Main.java is the entry point file
+$ javac -cp . debloat/Main.java
 
 # Run the program (you will be prompted to provide path to platform tools)
-$ java com.code.ADBMain
+$ java debloat.Main
 
 # ALTERNATIVELY
 
 # Pass the path as argument to the program (quotation marks are not required)
-$ java com.code.ADBMain E:/Android Tools/platform-tools/
+$ java debloat.Main E:/Android Tools/platform-tools/
 ```
 
 #### Copy and paste:
@@ -53,16 +53,16 @@ $ java com.code.ADBMain E:/Android Tools/platform-tools/
 git clone https://github.com/FriskIsGit/debloater-for-android;
 cd debloater-for-android/src/main/java;
 mv ../resources/packages.txt .;
-javac -cp . com/code/ADBMain.java;
-java com.code.ADBMain
+javac -cp . debloat/Main.java;
+java debloat.Main
 ```
 #### For cmd:
 ```cmd
 git clone https://github.com/FriskIsGit/debloater-for-android &
 cd debloater-for-android/src/main/java &
 move ../resources/packages.txt . &
-javac -cp . com/code/ADBMain.java &
-java com.code.ADBMain
+javac -cp . debloat/Main.java &
+java debloat.Main
 ```
 
 ## Modes
@@ -71,3 +71,4 @@ java com.code.ADBMain
 #### `3` Export apps (.apks) installed on device
 #### `4` Export .apk by name
 #### `5` Install back apps listed in packages.txt
+#### `6` Install exported apps

@@ -1,4 +1,4 @@
-package com.code;
+package debloat;
 
 import java.io.EOFException;
 import java.io.IOException;
