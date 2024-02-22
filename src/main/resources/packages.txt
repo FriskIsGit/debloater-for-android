@@ -109,6 +109,7 @@ com.lenovo.lsf.device
 com.mi.android.globalminusscreen
 com.mi.android.globalpersonalassistant
 com.mi.global.bbs
+com.mi.global.shop
 com.mi.globalbrowser
 com.micredit.in
 com.microsoft.appmanager
