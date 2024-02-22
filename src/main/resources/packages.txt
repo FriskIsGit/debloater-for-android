@@ -80,7 +80,6 @@ com.google.android.googlequicksearchbox
 com.google.android.ims
 com.google.android.marvin.talkback
 com.google.android.music
-com.google.android.networkstack.tethering
 com.google.android.onetimeinitializer
 com.google.android.overlay.modules.cellbroadcastreceiver
 com.google.android.partnersetup
