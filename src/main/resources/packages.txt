@@ -53,6 +53,7 @@ com.google.android.apps.magazines
 com.google.android.apps.messaging
 com.google.android.apps.photos
 com.google.android.apps.plus
+com.google.android.apps.podcasts
 com.google.android.apps.restore
 com.google.android.apps.safetyhub
 com.google.android.apps.security.securityhub
