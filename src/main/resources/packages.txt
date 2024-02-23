@@ -39,6 +39,7 @@ com.facebook.appmanager
 com.facebook.services
 com.facebook.system
 com.factory.mmigroup
+com.google.android.adservices.api
 com.google.android.androidforwork
 com.google.android.apps.books
 com.google.android.apps.docs
@@ -63,6 +64,7 @@ com.google.android.apps.wellbeing
 com.google.android.apps.work.clouddpc
 com.google.android.apps.youtube.music
 com.google.android.apps.walletnfcrel
+com.google.android.apps.setupwizard.searchselector
 com.google.android.apps.subscriptions.red
 com.google.android.apps.cloudprint
 com.google.android.as
@@ -85,6 +87,7 @@ com.google.android.overlay.modules.cellbroadcastreceiver
 com.google.android.partnersetup
 com.google.android.pixel.setupwizard
 com.google.android.printservice.recommendation
+com.google.android.safetycenter.resources
 com.google.android.setupwizard
 com.google.android.syncadapters.calendar
 com.google.android.syncadapters.contacts
@@ -97,6 +100,7 @@ com.google.android.youtube
 com.google.ar.core
 com.google.ar.lens
 com.google.mainline.telemetry
+com.google.mainline.adservices
 com.google.vr.vrcore
 com.hiya.star
 com.joom
@@ -111,6 +115,7 @@ com.mi.android.globalpersonalassistant
 com.mi.global.bbs
 com.mi.global.shop
 com.mi.globalbrowser
+com.mi.healthglobal
 com.micredit.in
 com.microsoft.appmanager
 com.microsoft.skydrive
@@ -126,7 +131,6 @@ com.miui.enbbs
 com.miui.face
 com.miui.fm
 com.miui.fmservice
-com.miui.freeform
 com.miui.hybrid
 com.miui.hybrid.accessory
 com.miui.micloudsync
@@ -327,7 +331,6 @@ com.wsomacp
 com.wt.secret_code_manager
 com.xiaomi.glgm
 com.xiaomi.joyose
-com.xiaomi.micloud.sdk
 com.xiaomi.midrop
 com.xiaomi.mipicks
 com.xiaomi.miplay_client
@@ -337,6 +340,8 @@ com.xiaomi.payment
 com.xiaomi.scanner
 com.xiaomi.simactivate.service
 com.xiaomi.xmsfkeeper
+org.ifaa.aidl.manager
+org.mipay.android.manager
 org.simalliance.openmobileapi.service
 org.simalliance.openmobileapi.uicc1terminal
 org.simalliance.openmobileapi.uicc2terminal
