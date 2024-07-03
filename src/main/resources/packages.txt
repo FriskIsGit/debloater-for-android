@@ -83,6 +83,8 @@ com.google.android.ims
 com.google.android.marvin.talkback
 com.google.android.music
 com.google.android.onetimeinitializer
+com.google.android.ondevicepersonalization.services
+com.google.android.overlay.gmsconfig.personalsafety
 com.google.android.overlay.modules.cellbroadcastreceiver
 com.google.android.partnersetup
 com.google.android.pixel.setupwizard
@@ -363,3 +365,4 @@ com.htc.cloudstorage.dropbox
 com.dropbox.android
 com.lmi.htc.rescue
 com.lmi.htc.rescuesecurity
+com.ebay.carrier
