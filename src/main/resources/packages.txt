@@ -12,7 +12,6 @@ com.android.adservices.api
 com.android.apps.tag
 com.android.bookmarkprovider
 com.android.chrome
-com.android.documentsui
 com.android.egg
 com.android.email
 com.android.hotwordenrollment.okgoogle
