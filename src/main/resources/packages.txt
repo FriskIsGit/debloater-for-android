@@ -365,3 +365,12 @@ com.dropbox.android
 com.lmi.htc.rescue
 com.lmi.htc.rescuesecurity
 com.ebay.carrier
+com.sony.dtv.sonyselect
+com.sony.dtv.sonyselect.overlay
+com.sony.dtv.seeds.iot
+com.sony.dtv.recapp
+com.sony.dtv.osat.music
+com.sony.dtv.notificationcenter
+com.sony.dtv.promos
+com.google.android.tungsten.setupwraith
+tv.samba.ssm
