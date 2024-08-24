@@ -140,6 +140,7 @@ com.miui.mishare.connectivity
 com.miui.msa.global
 com.miui.newmidrive
 com.miui.phrase
+com.miui.qr
 com.miui.touchassistant
 com.miui.translation.kingsoft
 com.miui.translation.xmcloud
@@ -374,3 +375,5 @@ com.sony.dtv.notificationcenter
 com.sony.dtv.promos
 com.google.android.tungsten.setupwraith
 tv.samba.ssm
+com.vewd.core.service
+com.vewd.core.integration.dia
