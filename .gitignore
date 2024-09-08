@@ -4,3 +4,6 @@
 src/main/resources/META-INF
 pom.xml
 /export
+*.iml
+
+src/*/*/*/*.class
