@@ -166,6 +166,7 @@ public class CLI {
     private void mode6() {
         File export = new File("export");
         if (!export.exists()) {
+            System.out.println(export.getAbsolutePath() + " not found");
             System.err.println("Create an export or put an .apk in export/com.app.name/");
             return;
         }
