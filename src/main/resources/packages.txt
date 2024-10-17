@@ -398,3 +398,11 @@ com.google.android.soundpicker
 com.miuix.editor
 eu.xiaomi.ext
 com.rongcard.eidapi
+com.dti.bouyguestelecom
+com.altice.android.myapps
+com.aura.oobe.vodafone
+com.ironsource.appcloud.oobe.hutchison
+com.sfr.android.sfrjeux
+com.google.android.healthconnect.controller
+com.orange.aura.oobe
+com.google.android.accessibility.switchaccess
