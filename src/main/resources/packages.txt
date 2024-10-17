@@ -405,4 +405,5 @@ com.ironsource.appcloud.oobe.hutchison
 com.sfr.android.sfrjeux
 com.google.android.healthconnect.controller
 com.orange.aura.oobe
+com.orange.update
 com.google.android.accessibility.switchaccess
