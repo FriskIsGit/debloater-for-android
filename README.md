@@ -72,3 +72,11 @@ java debloat.Main
 #### `4` Export .apk by name
 #### `5` Install back apps listed in packages.txt
 #### `6` Install exported apps
+
+## ADB compatibility
+Refer to release notes: https://developer.android.com/tools/releases/platform-tools
+<br>You can download specific versions by modifying this url:
+https://dl.google.com/android/repository/platform-tools_r34.0.4-windows.zip
+
+version 34.0.5 (October 2023) and above come bundled with new DbC interface for ChromeOS
+which may cause adb to crash on older systems
