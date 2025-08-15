@@ -1,6 +1,4 @@
 
-package debloat;
-
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -48,7 +46,7 @@ public class CLI {
     protected void start() {
         runDevicesStage();
         Mode mode = selectMode();
-        while(true) {
+        while (true) {
             boolean rerun = runMode(mode);
             if (!rerun) {
                 mode = selectMode();
@@ -58,7 +56,7 @@ public class CLI {
 
     private void runDevicesStage() {
         String output = commands.listDevices();
-        System.out.println(output);
+        System.out.print(output);
         int devices = devicesConnected(output);
         System.out.println(devices + (devices == 1 ? " connected device" : " connected devices"));
         if (SIMULATE_DEVICE) {
@@ -180,7 +178,6 @@ public class CLI {
             return;
         }
 
-
         for (File apkDir : apkDirs) {
             System.out.println("Installing " + apkDir.getName());
             File[] apks = apkDir.listFiles(file -> file.isFile() && file.getName().endsWith(".apk"));
@@ -193,7 +190,7 @@ public class CLI {
 
             String[] apkPaths = new String[apks.length];
             int index = 0;
-            for(File apk : apks) {
+            for (File apk : apks) {
                 apkPaths[index] = apk.getPath();
                 index++;
             }
@@ -222,7 +219,7 @@ public class CLI {
         }
         for (int i = 0; i < apks.length; i++) {
             // remove package: prefix from apk path
-            if(apks[i].length() < 8) {
+            if (apks[i].length() < 8) {
                 continue;
             }
             apks[i] = apks[i].substring(8);
@@ -233,7 +230,7 @@ public class CLI {
             return;
         }
         for (String apk : apks) {
-            if(apk.isEmpty()) {
+            if (apk.isEmpty()) {
                 continue;
             }
             String pullOutput = commands.pullAPK(apk, "./export/" + pckg);
@@ -249,8 +246,7 @@ public class CLI {
         String output = commands.listPackagesBy(mode.type);
         if (output.startsWith("package")) {
             packages = Packages.parse(output);
-        }
-        else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+        } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
             System.err.println("'pm list packages' command failed - can't export");
             this.start();
             return;
@@ -290,17 +286,16 @@ public class CLI {
                 System.out.println(pullOutput);
                 if (pullOutput.startsWith("adb: error:")) {
                     errors++;
-                }
-                else {
+                } else {
                     pulled++;
                 }
             }
             long now = System.currentTimeMillis();
-            System.out.println("Packages exported: " + counter + " | Pulls: " + pulled + " | Errors: " + errors + " | " + (now-st) + " ms elapsed");
+            System.out.println("Packages exported: " + counter + " | Pulls: " + pulled + " | Errors: " + errors + " | " + (now - st) + " ms elapsed");
             counter++;
         }
         long end = System.currentTimeMillis();
-        System.out.println("Time taken: " + (end-st) + " ms");
+        System.out.println("Time taken: " + (end - st) + " ms");
     }
 
     private String getAPKName(String apkPath) {
@@ -351,8 +346,7 @@ public class CLI {
             System.out.println("Found " + packages.size() + " packages installed on device.");
             // retain these that are installed
             bloatedPackages.retainAll(packages);
-        }
-        else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+        } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
             System.out.println("'pm list packages' command failed");
             error_fallback = true;
         } else {
@@ -478,6 +472,6 @@ class Mode {
     public String toString() {
         String fullLabel = (full ? " full" : "");
         String packageLabel = (type != PackageType.INAPPLICABLE ? type.toString() : "");
-        return "#" + ordinal +  fullLabel + " " + packageLabel;
+        return "#" + ordinal + fullLabel + " " + packageLabel;
     }
 }

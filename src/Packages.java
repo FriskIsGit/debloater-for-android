@@ -1,5 +1,3 @@
-package debloat;
-
 import java.util.*;
 
 public class Packages {

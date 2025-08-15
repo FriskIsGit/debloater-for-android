@@ -1,9 +1,8 @@
 /target
 /out
 .idea
-src/main/resources/META-INF
+resources/META-INF
 pom.xml
 /export
+/export*
 *.iml
-
-src/*/*/*/*.class

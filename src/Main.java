@@ -1,5 +1,3 @@
-package debloat;
-
 import java.io.*;
 import java.net.URL;
 import java.nio.file.*;

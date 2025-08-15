@@ -30,39 +30,13 @@ https://developer.android.com/studio/releases/platform-tools
 # Clone this repository
 $ git clone https://github.com/FriskIsGit/debloater-for-android
 
-# Navigate to java's source folder
-$ cd debloater-for-android/src/main/java
+# Navigate to project's root
+$ cd debloater-for-android
 
-# Move (or copy) packages.txt to the working directory
-$ mv ../resources/packages.txt .
-
-# Compile all .java files where Main.java is the entry point file
-$ javac -cp . debloat/Main.java
-
-# Run the program (you will be prompted to provide path to platform tools)
-$ java debloat.Main
-
-# ALTERNATIVELY
-
-# Pass the path as argument to the program (quotation marks are not required)
-$ java debloat.Main E:/Android Tools/platform-tools/
-```
-
-#### Copy and paste:
-```bash
-git clone https://github.com/FriskIsGit/debloater-for-android;
-cd debloater-for-android/src/main/java;
-mv ../resources/packages.txt .;
-javac -cp . debloat/Main.java;
-java debloat.Main
-```
-#### For cmd:
-```cmd
-git clone https://github.com/FriskIsGit/debloater-for-android &
-cd debloater-for-android/src/main/java &
-move ../resources/packages.txt . &
-javac -cp . debloat/Main.java &
-java debloat.Main
+# On Linux run
+$ ./rerun.sh
+# On Windows run
+$ rerun.bat
 ```
 
 ## Modes
