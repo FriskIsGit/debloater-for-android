@@ -11,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
         // no arguments, ask for path
         if (args.length == 0) {
-            displayHelp();
+            CLI.displayHelp();
             return;
         }
 
@@ -149,36 +149,5 @@ public class Main {
             }
         }
         return false;
-    }
-
-    private static void displayHelp() {
-        System.out.println("run.sh/run.bat <action>");
-        System.out.println();
-        System.out.println("Debloat (packages.txt) (no root) (will prompt)");
-        System.out.println("  debloat              Uninstalls packages listed in packages.txt");
-        System.out.println("  debloat-full         \"debloat\" but also deletes package data");
-        System.out.println("  debloat-undo [file]  \"debloat\" but reversed");
-        System.out.println();
-        System.out.println("App management:");
-        System.out.println("  uninstall    [name]      Uninstalls package by name (no root)");
-        System.out.println("  disable      [name]      Disables package by name (no root)");
-        System.out.println("  install-back [name]      Installs an existing package by name (no root)");
-        System.out.println();
-        System.out.println("App exports (no root) (dir is optional):");
-        System.out.println("  export [name] [dir]      Exports package by name");
-        System.out.println("  export-user   [dir]      Exports user packages");
-        System.out.println("  export-system [dir]      Exports system packages");
-        System.out.println();
-        System.out.println("App imports (no root) (dir is optional):");
-        System.out.println("  import [name] [dir]      Imports package by name from given directory");
-        System.out.println("  import-all    [dir]      Imports all packages from given directory");
-        System.out.println();
-        System.out.println("App installs:");
-        System.out.println("  install        [path]    Installs app from local path");
-        System.out.println("  install-system [path]    Installs app as system app from local path (root)");
-        System.out.println();
-        System.out.println("Setup");
-        System.out.println("  check-adb                Check if adb is available and device is detected");
-        System.out.println("  set-adb [path]           Path to where adb is installed, in case it's not in PATH");
     }
 }

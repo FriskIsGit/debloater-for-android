@@ -16,16 +16,23 @@ public class ADBCommands {
     private String[] DISABLE;
     private String[] LIST_PACKAGES;
     private String[] LIST_PACKAGES_BY_TYPE;
+    private String[] DEVICES;
     private String[] PM_PATH;
     private String[] PULL;
     private String[] ADB_PUSH;
+    private String[] MK_DIR;
+    private String[] RENAME;
+    private String[] ADB_INSTALL;
+    private String[] ADB_INSTALL_MULTIPLE;
+    private String[] ADB_ROOT;
+    private String[] ADB_UNROOT;
     private String[] INSTALL_BACK;
-    private String[] DEVICES;
     private String[] INSTALL_CREATE;
     private String[] INSTALL_WRITE;
     private String[] INSTALL_COMMIT;
-    private String[] ADB_INSTALL;
-    private String[] ADB_INSTALL_MULTIPLE;
+    private String[] MOUNT_READ_ONLY;
+    private String[] MOUNT_READ_WRITE;
+
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -68,12 +75,18 @@ public class ADBCommands {
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
         ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
+        MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
+        RENAME = joinCommand(adbTerms, new String[]{"shell", "mv", "", ""});
         LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages", ""});
         INSTALL_CREATE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-create", "-S", ""});
         INSTALL_WRITE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-write", "-S", "", "", "", ""});
         INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"shell", "pm", "install-commit", ""});
         ADB_INSTALL = joinCommand(adbTerms, new String[]{"install", ""});
         ADB_INSTALL_MULTIPLE = joinCommand(adbTerms, new String[]{"install-multiple"});
+        ADB_ROOT = joinCommand(adbTerms, new String[]{"root"});
+        ADB_UNROOT = joinCommand(adbTerms, new String[]{"unroot"});
+        MOUNT_READ_ONLY = joinCommand(adbTerms, new String[]{"shell", "mount", "-o", "ro,remount", ""});
+        MOUNT_READ_WRITE = joinCommand(adbTerms, new String[]{"shell", "mount", "-o", "rw,remount", ""});
     }
 
     private static String[] joinCommand(String[] terms, String[] command) {
@@ -85,6 +98,7 @@ public class ADBCommands {
 
     public String executeCommandTrim(String[] commands, int maxLen) {
         procBuilder.command(commands);
+        procBuilder.redirectErrorStream(true);
         try {
             Process proc = procBuilder.start();
             proc.waitFor(3, TimeUnit.SECONDS);
@@ -97,6 +111,7 @@ public class ADBCommands {
 
     public String executeCommandWithTimeout(String[] commands, long timeoutMs) {
         procBuilder.command(commands);
+        procBuilder.redirectErrorStream(true);
         try {
             Process proc = procBuilder.start();
             proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
@@ -119,7 +134,7 @@ public class ADBCommands {
 
     public String disablePackageByName(String pkgName) {
         DISABLE[DISABLE.length - 1] = pkgName;
-        return executeCommandWithTimeout(UNINSTALL_KEEP, 3000);
+        return executeCommandWithTimeout(DISABLE, 3000);
     }
 
     public String installExistingPackage(String pkgName) {
@@ -142,6 +157,17 @@ public class ADBCommands {
         ADB_PUSH[ADB_PUSH.length - 2] = pcPath;
         ADB_PUSH[ADB_PUSH.length - 1] = phonePath;
         return executeCommandWithTimeout(ADB_PUSH, 3000);
+    }
+
+    public String mkdir(String phonePath) {
+        MK_DIR[MK_DIR.length - 1] = phonePath;
+        return executeCommandWithTimeout(MK_DIR, 3000);
+    }
+
+    public String rename(String phonePath) {
+        /*RENAME[RENAME.length - 1] = phonePath;
+        return executeCommandWithTimeout(RENAME, 3000);*/
+        return "Unimplemented";
     }
 
     public String install(String path) {
@@ -173,6 +199,50 @@ public class ADBCommands {
     public String installExistingPackage(String pkgName, int maxOutputLen) {
         INSTALL_BACK[INSTALL_BACK.length - 1] = pkgName;
         return executeCommandTrim(INSTALL_BACK, maxOutputLen);
+    }
+
+    public String installsAsSystemApp(String apkPath, String appDir) {
+        String partition = "/";
+        String rwResult = remountReadWrite(partition);
+        if (rwResult.startsWith("adb: error:")) {
+            return rwResult;
+        }
+        if (rwResult.startsWith("mount:")) {
+            String rootResult = root();
+            if (!hasRoot(rootResult)) {
+                return rwResult + rootResult;
+            }
+        }
+        String phoneDir = "system/priv-app/" + appDir + "/";
+        String mkDirResult = mkdir(phoneDir);
+        String pushResult = push(apkPath, phoneDir);
+        if (pushResult.startsWith("adb: error:")) {
+            return mkDirResult + pushResult;
+        }
+        String roResult = remountReadOnly(partition);
+        return rwResult + pushResult + roResult;
+    }
+
+    public static boolean hasRoot(String output) {
+        return output.startsWith("restarting adbd as root") || output.startsWith("adbd is already running as root");
+    }
+
+    public String root() {
+        return executeCommandWithTimeout(ADB_ROOT, 3000);
+    }
+
+    public String unroot() {
+        return executeCommandWithTimeout(ADB_UNROOT, 3000);
+    }
+
+    public String remountReadOnly(String partition) {
+        MOUNT_READ_ONLY[MOUNT_READ_ONLY.length - 1] = partition;
+        return executeCommandWithTimeout(MOUNT_READ_ONLY, 3000);
+    }
+
+    public String remountReadWrite(String partition) {
+        MOUNT_READ_WRITE[MOUNT_READ_WRITE.length - 1] = partition;
+        return executeCommandWithTimeout(MOUNT_READ_WRITE, 3000);
     }
 
     // These commands don't require a timeout

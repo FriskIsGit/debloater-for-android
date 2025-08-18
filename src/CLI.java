@@ -4,8 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -67,6 +65,13 @@ public class CLI {
                 break;
 
             // Management
+            case "disable": {
+                ensureArgument(args, 1, "No package name provided.");
+                String pkg = args[1];
+                String result = commands.disablePackageByName(pkg);
+                System.out.println(result);
+            } break;
+
             case "uninstall": {
                 ensureArgument(args, 1, "No package name provided.");
                 String pkg = args[1];
@@ -81,13 +86,6 @@ public class CLI {
                 System.out.println(result);
             } break;
 
-            case "disable": {
-                ensureArgument(args, 1, "No package name provided.");
-                String pkg = args[1];
-                String result = commands.disablePackageByName(pkg);
-                System.out.println(result);
-            } break;
-
             case "install-back": {
                 ensureArgument(args, 1, "No package name provided.");
                 String pkg = args[1];
@@ -95,7 +93,35 @@ public class CLI {
                 System.out.println(result);
             } break;
 
+            case "install": {
+                ensureArgument(args, 1, "No path provided.");
+                String pkg = args[1];
+                String result = commands.install(pkg);
+                System.out.println(result);
+            } break;
+
+            case "install-system": {
+                ensureArgument(args, 1, "No path given. Provide the path to the apk");
+                String apkPath = args[1];
+                String appDirName = args.length > 2 ? args[2] : "";
+                String result = commands.installsAsSystemApp(apkPath, appDirName);
+                System.out.println(result);
+            } break;
+
+            case "uninstall-system": {
+                ensureArgument(args, 1, "No path given.");
+                // String name = args[1];
+                System.out.println("Unimplemented");
+            } break;
+
             // Exports
+            case "export": {
+                ensureArgument(args, 1, "No package name provided");
+                String name = args[1];
+                String outputDir = args.length > 2 ? args[2] : "export";
+                exportByName(name, outputDir);
+            } break;
+
             case "export-user": {
                 String outputDir = args.length >= 2 ? args[1] : "export";
                 export(PackageType.USER, outputDir);
@@ -109,13 +135,6 @@ public class CLI {
             case "export-all": {
                 String outputDir = args.length >= 2 ? args[1] : "export-all";
                 export(PackageType.ALL, outputDir);
-            } break;
-
-            case "export": {
-                ensureArgument(args, 1, "No package name provided");
-                String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : "export";
-                exportByName(name, outputDir);
             } break;
 
             // Imports
@@ -442,5 +461,35 @@ public class CLI {
     private void printRestoreCommandInfo() {
         System.out.println("If you wish to install back any deleted system packages try running command below:");
         System.out.println(ADBCommands.INSTALL_COMMAND_1 + " or " + ADBCommands.INSTALL_COMMAND_2);
+    }
+
+    public static void displayHelp() {
+        System.out.println("run.sh/run.bat <action>");
+        System.out.println();
+        System.out.println("Debloat (packages.txt) (no root) (will prompt)");
+        System.out.println("  debloat              Uninstalls packages listed in packages.txt");
+        System.out.println("  debloat-full         \"debloat\" but also deletes package data");
+        System.out.println("  debloat-undo [file]  \"debloat\" but reversed");
+        System.out.println();
+        System.out.println("Manage apps:");
+        System.out.println("  disable          [name]            Disables package by name");
+        System.out.println("  uninstall        [name]            Uninstalls package by name");
+        System.out.println("  uninstall-full   [name]            Uninstalls package by name (fully)");
+        System.out.println("  install-back     [name]            Installs an existing sys package by name");
+        System.out.println("  install          [path]            Installs app from local path");
+        System.out.println("[ROOT]:");
+        System.out.println("  uninstall-system [name]            [TODO] Uninstalls package by name (from system)");
+        System.out.println("  install-system   [path] [app_dir]  Installs app as system app from local path");
+        System.out.println();
+        System.out.println("Export apps (no root) (dir is optional):");
+        System.out.println("  export [name] [dir]      Exports package by name");
+        System.out.println("  export-user   [dir]      Exports user packages");
+        System.out.println("  export-system [dir]      Exports system packages");
+        System.out.println("  export-all    [dir]      Exports both user and system packages");
+        System.out.println();
+        System.out.println("Import apps (no root) (dir is optional):");
+        System.out.println("  import [name] [dir]      Imports package by name from given directory");
+        System.out.println("  import-all    [dir]      Imports all packages from given directory");
+        System.out.println();
     }
 }
