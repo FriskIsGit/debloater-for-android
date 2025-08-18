@@ -74,12 +74,9 @@ public class Main {
         Path cachePath = Paths.get(executingPath.substring(0, lastSlash) + "/cache.txt");
 
         try {
-            if (Files.notExists(cachePath)) {
-                Files.createFile(cachePath);
-            }
-            Files.write(cachePath, path.getBytes(), StandardOpenOption.WRITE);
+            Files.write(cachePath, path.getBytes());
         } catch (IOException e) {
-            return;
+            System.err.println("Failed to cache path: " + e.getMessage());
         }
     }
 

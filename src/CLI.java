@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 
 public class CLI {
@@ -62,7 +63,7 @@ public class CLI {
                 break;
             case "debloat-undo":
                 ensureArgument(args, 1, "Undoing debloat requires a list of packages");
-                debloatUndo(args[1], true);
+                debloatUndo(args[1]);
                 break;
 
             // Management
@@ -129,6 +130,10 @@ public class CLI {
                 String outputDir = args.length >= 2 ? args[1] : "export";
                 importApps(null, outputDir);
             } break;
+
+            default:
+                System.out.println("Unrecognized action command: " + action);
+                break;
         }
     }
 
@@ -326,9 +331,9 @@ public class CLI {
         }
     }
 
-    private void debloatUndo(String path, boolean skipPrompt) {
+    private void debloatUndo(String path) {
         String content = Utilities.readToString(path);
-        List<String> packages = Packages.parseToList(content);
+        List<String> packages = Utilities.readAllLines(content);
 
         int success = 0, fail = 0;
         for (String pkg : packages) {
@@ -336,24 +341,19 @@ public class CLI {
             String output = commands.installExistingPackage(pkg, 56);
             if (output.contains("Success") || output.startsWith("Package")) {
                 success++;
-                if (skipPrompt)
-                    continue;
             } else if (output.startsWith("android.content.pm.PackageManager$NameNotFoundException")) {
                 fail++;
-                continue;
             } else if (output.isEmpty()) {
                 System.err.println("Unauthorized/timed out");
+                break;
             } else if (output.startsWith("Error: unknown command") || output.startsWith("/system/bin/sh: cmd: not found")) {
                 System.err.println("Install-existing is not a command recognized by Android");
+                break;
             } else {
                 System.err.println(output);
             }
-
-            System.out.println("Results[success:" + success + ',' + " fail:" + fail + ']');
-            if (scanner.hasNextLine()) {
-                scanner.nextLine();
-            }
         }
+        System.out.println("Results[success:" + success + ',' + " fail:" + fail + ']');
     }
 
     private void debloat(boolean full) {
@@ -424,17 +424,19 @@ public class CLI {
         System.out.println("Completed in: " + (double) (end - start) / 1000 + " seconds");
         System.out.println("Packages uninstalled: " + uninstalled.size());
         System.out.println("Failures: " + fail);
-        printRestoreCommandInfo();
+
         if (uninstalled.size() > 0) {
-            Path debloatDump = Paths.get("debloat-" + Instant.now().toString() + ".txt");
+            long unixSec = System.currentTimeMillis() / 1000;
+            Path debloatDump = Paths.get("debloat-" + LocalDate.now() + "-" + unixSec + ".txt");
             byte[] uninstalledAsBytes = String.join("\n", uninstalled).getBytes(StandardCharsets.UTF_8);
             try {
-                Files.write(debloatDump, uninstalledAsBytes, StandardOpenOption.WRITE);
+                Files.write(debloatDump, uninstalledAsBytes);
+                System.out.println("Dumped uninstalled list to " + debloatDump);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
-                System.exit(1);
             }
         }
+        printRestoreCommandInfo();
     }
 
     private void printRestoreCommandInfo() {
