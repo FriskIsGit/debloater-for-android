@@ -2,6 +2,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,14 +75,18 @@ public class Utilities {
         return list;
     }
 
-    public static String stringArrayToString(String[] arr) {
-        StringBuilder pathBuilder = new StringBuilder();
-        for (int i = 0; i < arr.length; i++) {
-            pathBuilder.append(arr[i]);
-            if (i != arr.length - 1) {
-                pathBuilder.append(' ');
-            }
+    public static String readToString(String path) {
+        byte[] encoded = new byte[0];
+        try {
+            encoded = Files.readAllBytes(Paths.get(path));
+        } catch (IOException e) {
+            errExit(e.getMessage());
         }
-        return pathBuilder.toString();
+        return new String(encoded, StandardCharsets.UTF_8);
+    }
+
+    public static void errExit(String message) {
+        System.err.println(message);
+        System.exit(1);
     }
 }

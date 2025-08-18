@@ -13,6 +13,7 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private String[] UNINSTALL_KEEP;
     private String[] UNINSTALL_FULL;
+    private String[] DISABLE;
     private String[] LIST_PACKAGES;
     private String[] LIST_PACKAGES_BY_TYPE;
     private String[] PM_PATH;
@@ -60,6 +61,7 @@ public class ADBCommands {
     private void setupCommands(String... adbTerms) {
         UNINSTALL_KEEP = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "-k", "--user 0", ""});
         UNINSTALL_FULL = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "--user 0", ""});
+        DISABLE = joinCommand(adbTerms, new String[]{"shell", "pm", "disable-user", ""});
         LIST_PACKAGES = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages"});
         INSTALL_BACK = joinCommand(adbTerms, new String[]{"shell", "pm", "install-existing", ""});
         DEVICES = joinCommand(adbTerms, new String[]{"devices"});
@@ -105,23 +107,28 @@ public class ADBCommands {
         }
     }
 
-    public String uninstallPackageFully(String pckgName) {
-        UNINSTALL_FULL[UNINSTALL_FULL.length - 1] = pckgName;
+    public String uninstallPackageFully(String pkgName) {
+        UNINSTALL_FULL[UNINSTALL_FULL.length - 1] = pkgName;
         return executeCommandWithTimeout(UNINSTALL_FULL, 3000);
     }
 
-    public String uninstallPackage(String pckgName) {
-        UNINSTALL_KEEP[UNINSTALL_KEEP.length - 1] = pckgName;
+    public String uninstallPackage(String pkgName) {
+        UNINSTALL_KEEP[UNINSTALL_KEEP.length - 1] = pkgName;
         return executeCommandWithTimeout(UNINSTALL_KEEP, 3000);
     }
 
-    public String installPackage(String pckgName) {
-        INSTALL_BACK[INSTALL_BACK.length - 1] = pckgName;
+    public String disablePackageByName(String pkgName) {
+        DISABLE[DISABLE.length - 1] = pkgName;
+        return executeCommandWithTimeout(UNINSTALL_KEEP, 3000);
+    }
+
+    public String installExistingPackage(String pkgName) {
+        INSTALL_BACK[INSTALL_BACK.length - 1] = pkgName;
         return executeCommandWithTimeout(INSTALL_BACK, 3000);
     }
 
-    public String getPackagePath(String pckgName) {
-        PM_PATH[PM_PATH.length - 1] = pckgName;
+    public String getPackagePath(String pkgName) {
+        PM_PATH[PM_PATH.length - 1] = pkgName;
         return executeCommandWithTimeout(PM_PATH, 3000);
     }
 
@@ -163,8 +170,8 @@ public class ADBCommands {
         return executeCommandWithTimeout(INSTALL_COMMIT, 3000);
     }
 
-    public String installPackage(String pckgName, int maxOutputLen) {
-        INSTALL_BACK[INSTALL_BACK.length - 1] = pckgName;
+    public String installExistingPackage(String pkgName, int maxOutputLen) {
+        INSTALL_BACK[INSTALL_BACK.length - 1] = pkgName;
         return executeCommandTrim(INSTALL_BACK, maxOutputLen);
     }
 
@@ -190,8 +197,6 @@ public class ADBCommands {
             case SYSTEM:
                 modifier = "-s";
                 break;
-            case INAPPLICABLE:
-                throw new RuntimeException("How did we get here?");
         }
         LIST_PACKAGES_BY_TYPE[LIST_PACKAGES_BY_TYPE.length - 1] = modifier;
         return executeCommandWithTimeout(LIST_PACKAGES_BY_TYPE, 50);
@@ -199,5 +204,5 @@ public class ADBCommands {
 }
 
 enum PackageType {
-    SYSTEM, USER, ALL, INAPPLICABLE
+    SYSTEM, USER, ALL
 }

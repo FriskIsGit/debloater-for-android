@@ -39,13 +39,7 @@ $ ./rerun.sh
 $ rerun.bat
 ```
 
-## Modes
-#### `1` Uninstall package by name
-#### `2` Uninstall apps listed in packages.txt
-#### `3` Export apps (.apks) installed on device
-#### `4` Export .apk by name
-#### `5` Install back apps listed in packages.txt
-#### `6` Install exported apps
+## Commands
 
 ## ADB compatibility
 Refer to release notes: https://developer.android.com/tools/releases/platform-tools
