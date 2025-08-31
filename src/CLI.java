@@ -202,7 +202,7 @@ public class CLI {
             System.err.println("Unable to create " + outputDir + " directory");
             return;
         }
-        commands.tar(DATA_USER_0 + OUTPUT_TAR, DATA_USER_0 + pkgName);
+        commands.tar(DATA_USER_0 + OUTPUT_TAR, DATA_USER_0, pkgName);
         String appDataTar = DATA_USER_0 + OUTPUT_TAR;
         String pullOutput = commands.pull(appDataTar, outputDir + "/" + pkgName + ".tar");
         System.out.println(pullOutput);

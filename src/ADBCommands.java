@@ -4,7 +4,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
     //manually: adb shell pm uninstall -k --user 0 com.x
-    public static final String relativePath = "relativePath";
     public static final String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
     public static final String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
     public static final String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
@@ -77,7 +76,7 @@ public class ADBCommands {
         DEVICES = joinCommand(adbTerms, new String[]{"devices"});
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
-        TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", ""});
+        TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", "-C", "", ""});
         ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
         RENAME = joinCommand(adbTerms, new String[]{"shell", "mv", "", ""});
@@ -152,9 +151,10 @@ public class ADBCommands {
     }
 
     // tar will override an existing file in phone storage
-    public String tar(String tarName, String phoneDir) {
-        TAR[TAR.length - 2] = tarName;
-        TAR[TAR.length - 1] = phoneDir;
+    public String tar(String tarName, String changedDir, String firstDir) {
+        TAR[TAR.length - 4] = tarName;
+        TAR[TAR.length - 2] = changedDir;
+        TAR[TAR.length - 1] = firstDir;
         // System.out.println(Arrays.toString(TAR));
         return executeCommandWithTimeout(TAR, 3000);
     }
