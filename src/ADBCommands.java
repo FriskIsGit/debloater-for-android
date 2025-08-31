@@ -21,6 +21,7 @@ public class ADBCommands {
     private String[] PM_PATH;
     private String[] PULL;
     private String[] TAR;
+    private String[] RM;
     private String[] ADB_PUSH;
     private String[] MK_DIR;
     private String[] RENAME;
@@ -77,6 +78,7 @@ public class ADBCommands {
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
         TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", "-C", "", ""});
+        RM = joinCommand(adbTerms, new String[]{"shell", "rm", "-f", ""});
         ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
         RENAME = joinCommand(adbTerms, new String[]{"shell", "mv", "", ""});
@@ -181,6 +183,11 @@ public class ADBCommands {
     public String mkdir(String phonePath) {
         MK_DIR[MK_DIR.length - 1] = phonePath;
         return executeCommandWithTimeout(MK_DIR, 3000);
+    }
+
+    public String rm(String phonePath) {
+        RM[RM.length - 1] = phonePath;
+        return executeCommandWithTimeout(RM, 3000);
     }
 
     public String rename(String phonePath) {
