@@ -10,6 +10,10 @@ import java.util.*;
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
     private static final boolean SIMULATE_DEVICE = false;
+    private static final String DATA_USER_0 = "/data/user/0/";
+    private static final String OUTPUT_TAR = "output.tar";
+    private static final String DATA_EXPORT = "data-export";
+    private static final String EXPORT = "export";
 
     private ADBCommands commands;
     private List<String> bloatedPackages;
@@ -118,12 +122,12 @@ public class CLI {
             case "export": {
                 ensureArgument(args, 1, "No package name provided");
                 String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : "export";
+                String outputDir = args.length > 2 ? args[2] : EXPORT;
                 exportByName(name, outputDir);
             } break;
 
             case "export-user": {
-                String outputDir = args.length >= 2 ? args[1] : "export";
+                String outputDir = args.length >= 2 ? args[1] : EXPORT;
                 export(PackageType.USER, outputDir);
             } break;
 
@@ -137,23 +141,75 @@ public class CLI {
                 export(PackageType.ALL, outputDir);
             } break;
 
+            case "export-data": {
+                ensureArgument(args, 1, "No package name provided");
+                String name = args[1];
+                String outputDir = args.length > 2 ? args[2] : DATA_EXPORT;
+                exportDataByName(name, outputDir);
+            } break;
+
+            case "export-data-user": {
+                String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
+                exportAppData(PackageType.USER, outputDir);
+            } break;
+
             // Imports
             case "import": {
                 ensureArgument(args, 1, "No package name provided");
                 String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : "export";
+                String outputDir = args.length > 2 ? args[2] : EXPORT;
                 importApps(name, outputDir);
             } break;
 
             case "import-all": {
-                String outputDir = args.length >= 2 ? args[1] : "export";
+                String outputDir = args.length >= 2 ? args[1] : EXPORT;
                 importApps(null, outputDir);
+            } break;
+
+            case "import-data": {
+                ensureArgument(args, 1, "No package name provided");
+                String name = args[1];
+                String outputDir = args.length > 2 ? args[2] : DATA_EXPORT;
+                importDataByName(name, outputDir);
+            } break;
+
+            case "import-data-all": {
+                String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
+                importAppData(outputDir);
             } break;
 
             default:
                 System.out.println("Unrecognized action command: " + action);
                 break;
         }
+    }
+
+    private void importDataByName(String name, String outputDir) {
+    }
+
+    private void importAppData(String outputDir) {
+
+    }
+
+    private void exportDataByName(String pkgName, String outputDir) {
+        String rootResult = commands.root();
+        if (!ADBCommands.hasRoot(rootResult)) {
+            System.out.println("No root!");
+            return;
+        }
+        File export = new File(outputDir);
+        if (!export.exists() && !export.mkdirs()) {
+            System.err.println("Unable to create " + outputDir + " directory");
+            return;
+        }
+        commands.tar(DATA_USER_0 + OUTPUT_TAR, DATA_USER_0 + pkgName);
+        String appDataTar = DATA_USER_0 + OUTPUT_TAR;
+        String pullOutput = commands.pull(appDataTar, outputDir + "/" + pkgName + ".tar");
+        System.out.println(pullOutput);
+    }
+
+    private void exportAppData(PackageType packageType, String outputDir) {
+
     }
 
     private void ensureArgument(String[] args, int index, String errorMessage) {
@@ -202,7 +258,7 @@ public class CLI {
         File export = new File(outputDir);
         if (!export.exists()) {
             System.out.println(export.getAbsolutePath() + " not found");
-            System.err.println("Create an export or put an .apk in export/com.app.name/");
+            System.err.println("Create an export or put an .apk in " + EXPORT + "/com.app.name/");
             return;
         }
         File[] apkDirs = export.listFiles(File::isDirectory);
@@ -248,7 +304,7 @@ public class CLI {
             System.err.println("Unable to create export directory");
             return;
         }
-        System.out.println("Provide package name to export: ");
+
         String output = commands.getPackagePath(pkgName);
         if (output.isEmpty()) {
             System.err.println(pkgName + " doesn't exist?");
@@ -479,17 +535,23 @@ public class CLI {
         System.out.println("  install          [path]            Installs app from local path");
         System.out.println("[ROOT]:");
         System.out.println("  uninstall-system [name]            [TODO] Uninstalls package by name (from system)");
-        System.out.println("  install-system   [path] [app_dir]  Installs app as system app from local path");
+        System.out.println("  install-system   [path] [app_dir]  [BOOTLOOP] Installs app as system app from local path");
         System.out.println();
-        System.out.println("Export apps (no root) (dir is optional):");
+        System.out.println("Export apps (dir is optional):");
         System.out.println("  export [name] [dir]      Exports package by name");
         System.out.println("  export-user   [dir]      Exports user packages");
         System.out.println("  export-system [dir]      Exports system packages");
         System.out.println("  export-all    [dir]      Exports both user and system packages");
+        System.out.println("[ROOT] Export apps data:");
+        System.out.println("  export-data [name] [dir]      Export app's data directory");
+        System.out.println("  export-data-user   [dir]      [TODO] Export all user apps' data directories");
         System.out.println();
-        System.out.println("Import apps (no root) (dir is optional):");
-        System.out.println("  import [name] [dir]      Imports package by name from given directory");
-        System.out.println("  import-all    [dir]      Imports all packages from given directory");
+        System.out.println("Import apps:");
+        System.out.println("  import [name] [dir]        Imports package by name from given directory");
+        System.out.println("  import-all    [dir]        Imports all packages from given directory");
+        System.out.println("[ROOT] Import apps data:");
+        System.out.println("  import-data [name] [dir]   Import app's data directory");
+        System.out.println("  import-data-all    [dir]   [TODO] Import all apps' data");
         System.out.println();
     }
 }

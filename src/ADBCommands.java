@@ -1,8 +1,10 @@
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
     //manually: adb shell pm uninstall -k --user 0 com.x
+    public static final String relativePath = "relativePath";
     public static final String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
     public static final String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
     public static final String DISABLED_APPS_COMMAND = "adb shell pm list packages -d";
@@ -19,6 +21,7 @@ public class ADBCommands {
     private String[] DEVICES;
     private String[] PM_PATH;
     private String[] PULL;
+    private String[] TAR;
     private String[] ADB_PUSH;
     private String[] MK_DIR;
     private String[] RENAME;
@@ -74,6 +77,7 @@ public class ADBCommands {
         DEVICES = joinCommand(adbTerms, new String[]{"devices"});
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
+        TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", ""});
         ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
         RENAME = joinCommand(adbTerms, new String[]{"shell", "mv", "", ""});
@@ -147,9 +151,24 @@ public class ADBCommands {
         return executeCommandWithTimeout(PM_PATH, 3000);
     }
 
+    // tar will override an existing file in phone storage
+    public String tar(String tarName, String phoneDir) {
+        TAR[TAR.length - 2] = tarName;
+        TAR[TAR.length - 1] = phoneDir;
+        // System.out.println(Arrays.toString(TAR));
+        return executeCommandWithTimeout(TAR, 3000);
+    }
+
     public String pullAPK(String apkPath, String toPath) {
         PULL[PULL.length - 2] = apkPath;
         PULL[PULL.length - 1] = toPath;
+        return executeCommandWithTimeout(PULL, 3000);
+    }
+
+    public String pull(String phonePath, String pcPath) {
+        PULL[PULL.length - 2] = phonePath;
+        PULL[PULL.length - 1] = pcPath;
+        // System.out.println(Arrays.toString(PULL));
         return executeCommandWithTimeout(PULL, 3000);
     }
 
