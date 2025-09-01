@@ -21,6 +21,7 @@ public class ADBCommands {
     private String[] PM_PATH;
     private String[] PULL;
     private String[] TAR;
+    private String[] EXTRACT_TAR;
     private String[] RM;
     private String[] ADB_PUSH;
     private String[] MK_DIR;
@@ -78,6 +79,7 @@ public class ADBCommands {
         PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
         PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
         TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", "-C", "", ""});
+        EXTRACT_TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "xf", "", "-C", ""});
         RM = joinCommand(adbTerms, new String[]{"shell", "rm", "-f", ""});
         ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
         MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
@@ -152,13 +154,20 @@ public class ADBCommands {
         return executeCommandWithTimeout(PM_PATH, 3000);
     }
 
-    // tar will override an existing file in phone storage
-    public String tar(String tarName, String changedDir, String firstDir) {
-        TAR[TAR.length - 4] = tarName;
+    // tar commands will override existing files in phone storage
+    public String tar(String tarPath, String changedDir, String firstDir) {
+        TAR[TAR.length - 4] = tarPath;
         TAR[TAR.length - 2] = changedDir;
         TAR[TAR.length - 1] = firstDir;
         // System.out.println(Arrays.toString(TAR));
         return executeCommandWithTimeout(TAR, 3000);
+    }
+
+    public String extractTar(String tarPath, String changedDir) {
+        EXTRACT_TAR[EXTRACT_TAR.length - 3] = tarPath;
+        EXTRACT_TAR[EXTRACT_TAR.length - 1] = changedDir;
+        // System.out.println(Arrays.toString(EXTRACT_TAR));
+        return executeCommandWithTimeout(EXTRACT_TAR, 3000);
     }
 
     public String pullAPK(String apkPath, String toPath) {

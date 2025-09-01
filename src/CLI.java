@@ -12,6 +12,7 @@ public class CLI {
     private static final boolean SIMULATE_DEVICE = false;
     private static final String DATA_USER_0 = "/data/user/0/";
     private static final String OUTPUT_TAR = "output.tar";
+    private static final String IMPORT_TAR = "import.tar";
     private static final String DATA_EXPORT = "data-export";
     private static final String EXPORT = "export";
 
@@ -169,13 +170,13 @@ public class CLI {
             case "import-data": {
                 ensureArgument(args, 1, "No package name provided");
                 String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : DATA_EXPORT;
-                importDataByName(name, outputDir);
+                String importDir = args.length > 2 ? args[2] : DATA_EXPORT;
+                importDataByName(name, importDir);
             } break;
 
             case "import-data-all": {
                 String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
-                importAppData(outputDir);
+                importAppsData(outputDir);
             } break;
 
             default:
@@ -184,17 +185,38 @@ public class CLI {
         }
     }
 
-    private void importDataByName(String name, String outputDir) {
-    }
+    private void importDataByName(String pkgName, String importDir) {
+        String rootResult = commands.root();
+        if (!ADBCommands.hasRoot(rootResult)) {
+            System.out.println("No adb root!");
+            return;
+        }
+        File importFrom = new File(importDir);
+        if (!importFrom.exists()) {
+            System.err.println("There's no directory of name " + importDir);
+            return;
+        }
+        String appTar = pkgName + ".tar";
+        Path localTar = importFrom.toPath().resolve(appTar);
+        if (!Files.exists(localTar)) {
+            System.err.println("There's no file at " + localTar);
+            return;
+        }
 
-    private void importAppData(String outputDir) {
+        String phoneTar = DATA_USER_0 + IMPORT_TAR;
+        String pushResult = commands.push(localTar.toString(), phoneTar);
+        System.out.println(pushResult);
+        String extractResult = commands.extractTar(phoneTar, DATA_USER_0);
+        System.out.println(extractResult);
 
+        String rmResult = commands.rm(phoneTar);
+        System.out.println(rmResult);
     }
 
     private void exportDataByName(String pkgName, String outputDir) {
         String rootResult = commands.root();
         if (!ADBCommands.hasRoot(rootResult)) {
-            System.out.println("No root!");
+            System.out.println("No adb root!");
             return;
         }
         File export = new File(outputDir);
@@ -214,6 +236,9 @@ public class CLI {
 
     private void exportAppData(PackageType packageType, String outputDir) {
 
+    }
+
+    private void importAppsData(String outputDir) {
     }
 
     private void ensureArgument(String[] args, int index, String errorMessage) {
