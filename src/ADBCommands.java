@@ -12,30 +12,11 @@ public class ADBCommands {
     public static final String FULL_BACKUP_COMMAND = "adb backup -apk -obb -shared -all -system -f backup.ab";
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
-    private String[] UNINSTALL_KEEP;
-    private String[] UNINSTALL_FULL;
-    private String[] DISABLE;
-    private String[] LIST_PACKAGES;
-    private String[] LIST_PACKAGES_BY_TYPE;
-    private String[] DEVICES;
-    private String[] PM_PATH;
-    private String[] PULL;
-    private String[] TAR;
-    private String[] EXTRACT_TAR;
-    private String[] RM;
-    private String[] ADB_PUSH;
-    private String[] MK_DIR;
-    private String[] RENAME;
-    private String[] ADB_INSTALL;
-    private String[] ADB_INSTALL_MULTIPLE;
-    private String[] ADB_ROOT;
-    private String[] ADB_UNROOT;
-    private String[] INSTALL_BACK;
-    private String[] INSTALL_CREATE;
-    private String[] INSTALL_WRITE;
-    private String[] INSTALL_COMMIT;
-    private String[] MOUNT_READ_ONLY;
-    private String[] MOUNT_READ_WRITE;
+    private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE, LIST_PACKAGES, LIST_PACKAGES_BY_TYPE,
+            TAR, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
+            ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
+            INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT,
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE;
 
 
     public static ADBCommands fromDir(String adbDir) {
@@ -70,33 +51,34 @@ public class ADBCommands {
     }
 
     private void setupCommands(String... adbTerms) {
-        UNINSTALL_KEEP = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "-k", "--user 0", ""});
-        UNINSTALL_FULL = joinCommand(adbTerms, new String[]{"shell", "pm", "uninstall", "--user 0", ""});
-        DISABLE = joinCommand(adbTerms, new String[]{"shell", "pm", "disable-user", ""});
-        LIST_PACKAGES = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages"});
-        INSTALL_BACK = joinCommand(adbTerms, new String[]{"shell", "pm", "install-existing", ""});
-        DEVICES = joinCommand(adbTerms, new String[]{"devices"});
-        PM_PATH = joinCommand(adbTerms, new String[]{"shell", "pm", "path", ""});
-        PULL = joinCommand(adbTerms, new String[]{"pull", "", ""});
-        TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "cf", "", "-C", "", ""});
-        EXTRACT_TAR = joinCommand(adbTerms, new String[]{"shell", "tar", "xf", "", "-C", ""});
-        RM = joinCommand(adbTerms, new String[]{"shell", "rm", "-f", ""});
-        ADB_PUSH = joinCommand(adbTerms, new String[]{"push", "", ""});
-        MK_DIR = joinCommand(adbTerms, new String[]{"shell", "mkdir", "-p", ""});
-        RENAME = joinCommand(adbTerms, new String[]{"shell", "mv", "", ""});
-        LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, new String[]{"shell", "pm", "list", "packages", ""});
-        INSTALL_CREATE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-create", "-S", ""});
-        INSTALL_WRITE = joinCommand(adbTerms, new String[]{"shell", "pm", "install-write", "-S", "", "", "", ""});
-        INSTALL_COMMIT = joinCommand(adbTerms, new String[]{"shell", "pm", "install-commit", ""});
-        ADB_INSTALL = joinCommand(adbTerms, new String[]{"install", ""});
-        ADB_INSTALL_MULTIPLE = joinCommand(adbTerms, new String[]{"install-multiple"});
-        ADB_ROOT = joinCommand(adbTerms, new String[]{"root"});
-        ADB_UNROOT = joinCommand(adbTerms, new String[]{"unroot"});
-        MOUNT_READ_ONLY = joinCommand(adbTerms, new String[]{"shell", "mount", "-o", "ro,remount", ""});
-        MOUNT_READ_WRITE = joinCommand(adbTerms, new String[]{"shell", "mount", "-o", "rw,remount", ""});
+        UNINSTALL_KEEP = joinCommand(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
+        UNINSTALL_FULL = joinCommand(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
+        DISABLE = joinCommand(adbTerms, "shell", "pm", "disable-user", "");
+        LIST_PACKAGES = joinCommand(adbTerms, "shell", "pm", "list", "packages");
+        INSTALL_BACK = joinCommand(adbTerms, "shell", "pm", "install-existing", "");
+        DEVICES = joinCommand(adbTerms, "devices");
+        PM_PATH = joinCommand(adbTerms, "shell", "pm", "path", "");
+        ADB_PULL = joinCommand(adbTerms, "pull", "", "");
+        TAR = joinCommand(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
+        EXTRACT_TAR = joinCommand(adbTerms, "shell", "tar", "xfp", "", "-C", "");
+        RESTORECON = joinCommand(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
+        RM = joinCommand(adbTerms, "shell", "rm", "-f", "");
+        ADB_PUSH = joinCommand(adbTerms, "push", "", "");
+        MK_DIR = joinCommand(adbTerms, "shell", "mkdir", "-p", "");
+        RENAME = joinCommand(adbTerms, "shell", "mv", "", "");
+        LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, "shell", "pm", "list", "packages", "");
+        INSTALL_CREATE = joinCommand(adbTerms, "shell", "pm", "install-create", "-S", "");
+        INSTALL_WRITE = joinCommand(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
+        INSTALL_COMMIT = joinCommand(adbTerms, "shell", "pm", "install-commit", "");
+        ADB_INSTALL = joinCommand(adbTerms, "install", "");
+        ADB_INSTALL_MULTIPLE = joinCommand(adbTerms, "install-multiple");
+        ADB_ROOT = joinCommand(adbTerms, "root");
+        ADB_UNROOT = joinCommand(adbTerms, "unroot");
+        MOUNT_READ_ONLY = joinCommand(adbTerms, "shell", "mount", "-o", "ro,remount", "");
+        MOUNT_READ_WRITE = joinCommand(adbTerms, "shell", "mount", "-o", "rw,remount", "");
     }
 
-    private static String[] joinCommand(String[] terms, String[] command) {
+    private static String[] joinCommand(String[] terms, String... command) {
         String[] joined = new String[terms.length + command.length];
         System.arraycopy(terms, 0, joined, 0, terms.length);
         System.arraycopy(command, 0, joined, terms.length, command.length);
@@ -159,28 +141,28 @@ public class ADBCommands {
         TAR[TAR.length - 4] = tarPath;
         TAR[TAR.length - 2] = changedDir;
         TAR[TAR.length - 1] = firstDir;
-        // System.out.println(Arrays.toString(TAR));
+        System.out.println(Arrays.toString(TAR));
         return executeCommandWithTimeout(TAR, 3000);
     }
 
     public String extractTar(String tarPath, String changedDir) {
         EXTRACT_TAR[EXTRACT_TAR.length - 3] = tarPath;
         EXTRACT_TAR[EXTRACT_TAR.length - 1] = changedDir;
-        // System.out.println(Arrays.toString(EXTRACT_TAR));
+        System.out.println(Arrays.toString(EXTRACT_TAR));
         return executeCommandWithTimeout(EXTRACT_TAR, 3000);
     }
 
     public String pullAPK(String apkPath, String toPath) {
-        PULL[PULL.length - 2] = apkPath;
-        PULL[PULL.length - 1] = toPath;
-        return executeCommandWithTimeout(PULL, 3000);
+        ADB_PULL[ADB_PULL.length - 2] = apkPath;
+        ADB_PULL[ADB_PULL.length - 1] = toPath;
+        return executeCommandWithTimeout(ADB_PULL, 3000);
     }
 
     public String pull(String phonePath, String pcPath) {
-        PULL[PULL.length - 2] = phonePath;
-        PULL[PULL.length - 1] = pcPath;
+        ADB_PULL[ADB_PULL.length - 2] = phonePath;
+        ADB_PULL[ADB_PULL.length - 1] = pcPath;
         // System.out.println(Arrays.toString(PULL));
-        return executeCommandWithTimeout(PULL, 3000);
+        return executeCommandWithTimeout(ADB_PULL, 3000);
     }
 
     public String push(String pcPath, String phonePath) {

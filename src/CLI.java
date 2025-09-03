@@ -203,11 +203,17 @@ public class CLI {
             return;
         }
 
+        String packagesResult = commands.listPackages();
+        Set<String> installed = Packages.parse(packagesResult);
+        if (!installed.contains(pkgName)) {
+            System.err.println("The app is not installed, install it first.");
+            return;
+        }
         String phoneTar = DATA_USER_0 + IMPORT_TAR;
         String pushResult = commands.push(localTar.toString(), phoneTar);
         System.out.println(pushResult);
         String extractResult = commands.extractTar(phoneTar, DATA_USER_0);
-        System.out.println(extractResult);
+        //System.out.println(extractResult);
 
         String rmResult = commands.rm(phoneTar);
         System.out.println(rmResult);
