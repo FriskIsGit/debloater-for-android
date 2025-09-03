@@ -48,3 +48,15 @@ https://dl.google.com/android/repository/platform-tools_r34.0.4-windows.zip
 
 version 34.0.5 (October 2023) and above come bundled with new DbC interface for ChromeOS
 which may cause adb to crash on older systems
+
+## Exports/Imports
+It's possible to export app data
+```shell
+./run export-data com.package.name
+```
+and import with
+```shell
+./run import-data com.package.name
+```
+but the use is limited if the app uses (hardware-backed) Android Keystore.
+Simply clearing app's data from settings causes the OS to reset the data for this app in the keystore as well, making the backup useless.

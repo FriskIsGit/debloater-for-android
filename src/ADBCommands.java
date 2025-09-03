@@ -13,7 +13,7 @@ public class ADBCommands {
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE, LIST_PACKAGES, LIST_PACKAGES_BY_TYPE,
-            TAR, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
+            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE;
@@ -61,6 +61,7 @@ public class ADBCommands {
         ADB_PULL = joinCommand(adbTerms, "pull", "", "");
         TAR = joinCommand(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
         EXTRACT_TAR = joinCommand(adbTerms, "shell", "tar", "xfp", "", "-C", "");
+        CHOWN_RECURSE = joinCommand(adbTerms, "shell", "chown", "-R", "", "");
         RESTORECON = joinCommand(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
         RM = joinCommand(adbTerms, "shell", "rm", "-f", "");
         ADB_PUSH = joinCommand(adbTerms, "push", "", "");
@@ -134,6 +135,13 @@ public class ADBCommands {
     public String getPackagePath(String pkgName) {
         PM_PATH[PM_PATH.length - 1] = pkgName;
         return executeCommandWithTimeout(PM_PATH, 3000);
+    }
+
+    public String changeOwnership(String owner, String group, String phonePath) {
+        CHOWN_RECURSE[CHOWN_RECURSE.length - 2] = owner + ":" + group;
+        CHOWN_RECURSE[CHOWN_RECURSE.length - 1] = phonePath;
+        System.out.println(Arrays.toString(CHOWN_RECURSE));
+        return executeCommandWithTimeout(CHOWN_RECURSE, 3000);
     }
 
     // tar commands will override existing files in phone storage

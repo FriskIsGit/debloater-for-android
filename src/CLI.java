@@ -34,8 +34,8 @@ public class CLI {
         if (action.equals("debloat") || action.equals("debloat-full")) {
             URL url = Main.class.getResource(PACKAGES_SRC);
             if (url == null) {
-                System.err.println("Couldn't find/load: " + PACKAGES_SRC);
-                System.exit(1);
+                errorExit("Couldn't find/load: " + PACKAGES_SRC);
+                return;
             }
             loadBloatedPackages(url);
         }
@@ -47,8 +47,7 @@ public class CLI {
             String readLines = Utilities.readFully(packagesStream);
             bloatedPackages = Utilities.readAllLines(readLines);
         } catch (IOException ioException) {
-            System.err.println("Error reading packages with file.. exiting");
-            System.exit(1);
+            errorExit("Error reading packages with file.. exiting");
         }
         System.out.println(bloatedPackages.size() + " packages loaded from packages.txt:");
         System.out.println(bloatedPackages);
@@ -107,6 +106,7 @@ public class CLI {
 
             case "install-system": {
                 ensureArgument(args, 1, "No path given. Provide the path to the apk");
+                errorExit("Unsafe command");
                 String apkPath = args[1];
                 String appDirName = args.length > 2 ? args[2] : "";
                 String result = commands.installsAsSystemApp(apkPath, appDirName);
@@ -116,7 +116,7 @@ public class CLI {
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
                 // String name = args[1];
-                System.out.println("Unimplemented");
+                errorExit("Unimplemented");
             } break;
 
             // Exports
@@ -180,7 +180,7 @@ public class CLI {
             } break;
 
             default:
-                System.out.println("Unrecognized action command: " + action);
+                errorExit("Unrecognized action command: " + action);
                 break;
         }
     }
@@ -188,25 +188,25 @@ public class CLI {
     private void importDataByName(String pkgName, String importDir) {
         String rootResult = commands.root();
         if (!ADBCommands.hasRoot(rootResult)) {
-            System.out.println("No adb root!");
+            errorExit("No adb root!");
             return;
         }
         File importFrom = new File(importDir);
         if (!importFrom.exists()) {
-            System.err.println("There's no directory of name " + importDir);
+            errorExit("There's no directory of name " + importDir);
             return;
         }
         String appTar = pkgName + ".tar";
         Path localTar = importFrom.toPath().resolve(appTar);
         if (!Files.exists(localTar)) {
-            System.err.println("There's no file at " + localTar);
+            errorExit("There's no file at " + localTar);
             return;
         }
 
         String packagesResult = commands.listPackages();
         Set<String> installed = Packages.parse(packagesResult);
         if (!installed.contains(pkgName)) {
-            System.err.println("The app is not installed, install it first.");
+            errorExit("The app is not installed, install it first.");
             return;
         }
         String phoneTar = DATA_USER_0 + IMPORT_TAR;
@@ -222,12 +222,12 @@ public class CLI {
     private void exportDataByName(String pkgName, String outputDir) {
         String rootResult = commands.root();
         if (!ADBCommands.hasRoot(rootResult)) {
-            System.out.println("No adb root!");
+            errorExit("No adb root!");
             return;
         }
         File export = new File(outputDir);
         if (!export.exists() && !export.mkdirs()) {
-            System.err.println("Unable to create " + outputDir + " directory");
+            errorExit("Unable to create " + outputDir + " directory");
             return;
         }
 
@@ -251,8 +251,7 @@ public class CLI {
         if (index < args.length) {
             return;
         }
-        System.err.println(errorMessage);
-        System.exit(1);
+        errorExit(errorMessage);
     }
 
     private void runDevicesStage() {
@@ -292,13 +291,13 @@ public class CLI {
     private void importApps(String name, String outputDir) {
         File export = new File(outputDir);
         if (!export.exists()) {
-            System.out.println(export.getAbsolutePath() + " not found");
-            System.err.println("Create an export or put an .apk in " + EXPORT + "/com.app.name/");
+            System.err.println(export.getAbsolutePath() + " not found");
+            errorExit("Create an export or put an .apk in " + EXPORT + "/com.app.name/");
             return;
         }
         File[] apkDirs = export.listFiles(File::isDirectory);
         if (apkDirs == null || apkDirs.length == 0) {
-            System.err.println("There's nothing to install back.");
+            errorExit("There's nothing to install back.");
             return;
         }
 
@@ -336,18 +335,18 @@ public class CLI {
     private void exportByName(String pkgName, String outputDir) {
         File export = new File(outputDir);
         if (!export.exists() && !export.mkdirs()) {
-            System.err.println("Unable to create export directory");
+            errorExit("Unable to create export directory");
             return;
         }
 
         String output = commands.getPackagePath(pkgName);
         if (output.isEmpty()) {
-            System.err.println(pkgName + " doesn't exist?");
+            errorExit(pkgName + " doesn't exist?");
             return;
         }
         String[] apks = output.split("\\r?\\n");
         if (apks.length == 0) {
-            System.err.println("Nothing to export.");
+            errorExit("Nothing to export.");
             return;
         }
         for (int i = 0; i < apks.length; i++) {
@@ -360,7 +359,7 @@ public class CLI {
 
         File pkgExport = Paths.get(outputDir).resolve(pkgName).toFile();
         if (!pkgExport.exists() && !pkgExport.mkdirs()) {
-            System.err.println("Unable to create " + pkgName + " directory");
+            errorExit("Unable to create " + pkgName + " directory");
             return;
         }
         for (String apk : apks) {
@@ -377,16 +376,16 @@ public class CLI {
         if (output.startsWith("package")) {
             packages = Packages.parse(output);
         } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
-            System.err.println("'pm list packages' command failed - can't export");
+            errorExit("'pm list packages' command failed - can't export");
             return;
         } else {
-            System.err.println(output);
+            errorExit(output);
             return;
         }
         int pulled = 0, errors = 0;
         File export = new File(outputDir);
         if (!export.exists() && !export.mkdirs()) {
-            System.err.println("Unable to create export directory");
+            errorExit("Unable to create export directory");
             return;
         }
         System.out.println(packages);
@@ -543,7 +542,7 @@ public class CLI {
                 Files.write(debloatDump, uninstalledAsBytes);
                 System.out.println("Dumped uninstalled list to " + debloatDump);
             } catch (IOException e) {
-                System.err.println(e.getMessage());
+                errorExit(e.getMessage());
             }
         }
         printRestoreCommandInfo();
@@ -588,5 +587,10 @@ public class CLI {
         System.out.println("  import-data [name] [dir]   Import app's data directory");
         System.out.println("  import-data-all    [dir]   [TODO] Import all apps' data");
         System.out.println();
+    }
+
+    public static void errorExit(String message) {
+        System.err.println(message);
+        System.exit(1);
     }
 }
