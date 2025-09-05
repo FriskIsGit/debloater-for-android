@@ -179,6 +179,19 @@ public class CLI {
                 importAppsData(outputDir);
             } break;
 
+            case "list-packages": {
+                String res = commands.listPackagesWithUID();
+                List<App> apps = Packages.parseWithUID(res);
+                for (App app : apps) {
+                    System.out.println(app);
+                }
+            } break;
+
+            case "android-version": {
+                String version = commands.getAndroidVersion();
+                System.out.println("Android " + version);
+            } break;
+
             default:
                 errorExit("Unrecognized action command: " + action);
                 break;

@@ -26,6 +26,7 @@ public class Packages {
         }
         return packages;
     }
+
     public static List<String> parseToList(String output) {
         List<String> packages = new ArrayList<>();
         int outputLen = output.length();
@@ -58,24 +59,27 @@ public class Packages {
             if (colon == -1) {
                 break;
             }
-            int p = colon + 1;
-            pkg_name_loop:
-            for (;p < outputLen; p++) {
-                switch (output.charAt(p)) {
+            int space = output.indexOf(' ', colon + 1);
+            String packageName = output.substring(colon + 1, space);
+
+            int uidColon = output.indexOf(':', space);
+
+            int end = uidColon + 1;
+            uid_end_loop:
+            for (;end < outputLen; end++) {
+                switch (output.charAt(end)) {
                     case '\r':
                     case '\n':
-                        break pkg_name_loop;
-                    case ' ':
-                        String packageName = output.substring(colon + 1, p);
-                        int uidColon = output.indexOf(':', p);
-                        int comma = output.indexOf(',', uidColon);
-                        String uid = output.substring(uidColon + 1, comma);
-                        App app = new App(packageName, uid);
-                        apps.add(app);
-                        break pkg_name_loop;
+                    case ',':
+                        break uid_end_loop;
                 }
             }
-            i = p;
+
+
+            String uid = output.substring(uidColon + 1, end);
+            App app = new App(packageName, uid);
+            apps.add(app);
+            i = end + 1;
         }
         return apps;
     }
@@ -118,16 +122,3 @@ public class Packages {
     }
 }
 
-class App {
-    public String name, uid;
-
-    public App(String name, String uid) {
-        this.name = name;
-        this.uid = uid;
-    }
-
-    @Override
-    public String toString() {
-        return name + ":" + uid;
-    }
-}

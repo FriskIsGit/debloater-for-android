@@ -79,7 +79,7 @@ public class ADBCommands {
         ADB_UNROOT = joinCommand(adbTerms, "unroot");
         MOUNT_READ_ONLY = joinCommand(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         MOUNT_READ_WRITE = joinCommand(adbTerms, "shell", "mount", "-o", "rw,remount", "");
-        ANDROID_VERSION = joinCommand(adbTerms, "getprop", "ro.build.version.release");
+        ANDROID_VERSION = joinCommand(adbTerms, "shell", "getprop", "ro.build.version.release");
     }
 
     private static String[] joinCommand(String[] terms, String... command) {
