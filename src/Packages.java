@@ -50,6 +50,36 @@ public class Packages {
         return packages;
     }
 
+    public static List<App> parseWithUID(String output) {
+        List<App> apps = new ArrayList<>();
+        int outputLen = output.length();
+        for (int i = 0; i < outputLen; i++) {
+            int colon = output.indexOf(':', i);
+            if (colon == -1) {
+                break;
+            }
+            int p = colon + 1;
+            pkg_name_loop:
+            for (;p < outputLen; p++) {
+                switch (output.charAt(p)) {
+                    case '\r':
+                    case '\n':
+                        break pkg_name_loop;
+                    case ' ':
+                        String packageName = output.substring(colon + 1, p);
+                        int uidColon = output.indexOf(':', p);
+                        int comma = output.indexOf(',', uidColon);
+                        String uid = output.substring(uidColon + 1, comma);
+                        App app = new App(packageName, uid);
+                        apps.add(app);
+                        break pkg_name_loop;
+                }
+            }
+            i = p;
+        }
+        return apps;
+    }
+
     public static String sortByGroups(Set<String> packageNames) {
         HashMap<String, List<String>> groupsToPackages = new HashMap<>();
         String groupName = "";
@@ -86,5 +116,18 @@ public class Packages {
             groupToPackages.put(groupName, new ArrayList<>(Arrays.asList(fullName)));
         }
     }
+}
 
+class App {
+    public String name, uid;
+
+    public App(String name, String uid) {
+        this.name = name;
+        this.uid = uid;
+    }
+
+    @Override
+    public String toString() {
+        return name + ":" + uid;
+    }
 }

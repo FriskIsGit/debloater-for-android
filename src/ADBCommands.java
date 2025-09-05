@@ -12,11 +12,12 @@ public class ADBCommands {
     public static final String FULL_BACKUP_COMMAND = "adb backup -apk -obb -shared -all -system -f backup.ab";
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
-    private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE, LIST_PACKAGES, LIST_PACKAGES_BY_TYPE,
+    private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
+            LIST_PACKAGES, LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE;
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION;
 
 
     public static ADBCommands fromDir(String adbDir) {
@@ -68,6 +69,7 @@ public class ADBCommands {
         MK_DIR = joinCommand(adbTerms, "shell", "mkdir", "-p", "");
         RENAME = joinCommand(adbTerms, "shell", "mv", "", "");
         LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, "shell", "pm", "list", "packages", "");
+        LIST_PACKAGES_WITH_UID = joinCommand(adbTerms, "shell", "pm", "list", "packages", "-U");
         INSTALL_CREATE = joinCommand(adbTerms, "shell", "pm", "install-create", "-S", "");
         INSTALL_WRITE = joinCommand(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
         INSTALL_COMMIT = joinCommand(adbTerms, "shell", "pm", "install-commit", "");
@@ -77,6 +79,7 @@ public class ADBCommands {
         ADB_UNROOT = joinCommand(adbTerms, "unroot");
         MOUNT_READ_ONLY = joinCommand(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         MOUNT_READ_WRITE = joinCommand(adbTerms, "shell", "mount", "-o", "rw,remount", "");
+        ANDROID_VERSION = joinCommand(adbTerms, "getprop", "ro.build.version.release");
     }
 
     private static String[] joinCommand(String[] terms, String... command) {
@@ -270,14 +273,21 @@ public class ADBCommands {
         return executeCommandWithTimeout(MOUNT_READ_WRITE, 3000);
     }
 
-    // These commands don't require a timeout
+    // These commands don't require a timeout, but it makes them more reliable
     public String listDevices() {
         return executeCommandWithTimeout(DEVICES, 50);
     }
 
-    // But it makes them more reliable
     public String listPackages() {
         return executeCommandWithTimeout(LIST_PACKAGES, 50);
+    }
+
+    public String listPackagesWithUID() {
+        return executeCommandWithTimeout(LIST_PACKAGES_WITH_UID, 50);
+    }
+
+    public String getAndroidVersion() {
+        return executeCommandWithTimeout(ANDROID_VERSION, 50);
     }
 
     public String listPackagesBy(PackageType type) {
