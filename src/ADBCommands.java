@@ -16,7 +16,7 @@ public class ADBCommands {
             LIST_PACKAGES, LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
-            INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT,
+            INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION;
 
 
@@ -80,6 +80,7 @@ public class ADBCommands {
         MOUNT_READ_ONLY = joinCommand(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         MOUNT_READ_WRITE = joinCommand(adbTerms, "shell", "mount", "-o", "rw,remount", "");
         ANDROID_VERSION = joinCommand(adbTerms, "shell", "getprop", "ro.build.version.release");
+        EXISTS = joinCommand(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
     }
 
     private static String[] joinCommand(String[] terms, String... command) {
@@ -190,6 +191,11 @@ public class ADBCommands {
     public String rm(String phonePath) {
         RM[RM.length - 1] = phonePath;
         return executeCommandWithTimeout(RM, 3000);
+    }
+
+    public boolean exists(String phonePath) {
+        EXISTS[EXISTS.length - 4] = phonePath;
+        return executeCommandWithTimeout(EXISTS, 3000).startsWith("Yes");
     }
 
     public String rename(String phonePath) {

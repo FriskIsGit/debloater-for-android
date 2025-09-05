@@ -245,6 +245,11 @@ public class CLI {
             return;
         }
 
+        if (!commands.exists(DATA_USER_0 + pkgName)) {
+            errorExit("Path at " + (DATA_USER_0 + pkgName) + " does not exist");
+            return;
+        }
+
         String appDataTar = DATA_USER_0 + OUTPUT_TAR;
         commands.tar(appDataTar, DATA_USER_0, pkgName);
 
