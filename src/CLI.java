@@ -225,11 +225,12 @@ public class CLI {
         String phoneTar = DATA_USER_0 + IMPORT_TAR;
         String pushResult = commands.push(localTar.toString(), phoneTar);
         System.out.println(pushResult);
-        String extractResult = commands.extractTar(phoneTar, DATA_USER_0);
-        //System.out.println(extractResult);
-
-        String rmResult = commands.rm(phoneTar);
-        System.out.println(rmResult);
+        commands.extractTar(phoneTar, DATA_USER_0);
+        commands.rm(phoneTar);
+        List<App> apps = Packages.parseWithUID(commands.listPackagesWithUID());
+        App targetApp = apps.stream().filter(app -> app.name.equals(pkgName)).findFirst().get();
+        System.out.println("Target app: " + targetApp);
+        commands.changeOwnership(targetApp.uid, targetApp.uid, DATA_USER_0 + pkgName);
     }
 
     private void exportDataByName(String pkgName, String outputDir) {

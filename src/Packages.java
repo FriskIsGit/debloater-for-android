@@ -75,7 +75,6 @@ public class Packages {
                 }
             }
 
-
             String uid = output.substring(uidColon + 1, end);
             App app = new App(packageName, uid);
             apps.add(app);
