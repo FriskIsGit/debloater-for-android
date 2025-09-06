@@ -1,2 +1,2 @@
-!#bin/sh
+#!/bin/sh
 java -cp out Main "$@"

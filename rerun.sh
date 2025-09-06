@@ -1,4 +1,4 @@
-!#bin/sh
+#!/bin/sh
 
 echo "Compiling source files"
 javac -sourcepath src src/Main.java -d out
