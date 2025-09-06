@@ -152,7 +152,7 @@ public class CLI {
 
             case "export-data-user": {
                 String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
-                exportAppData(PackageType.USER, outputDir);
+                exportAppsData(PackageType.USER, outputDir);
             } break;
 
             // Imports
@@ -218,7 +218,7 @@ public class CLI {
         }
 
         String packagesResult = commands.listPackagesBy(PackageType.ALL);
-        Set<String> installed = Packages.parse(packagesResult);
+        Set<String> installed = Packages.parseToSet(packagesResult);
         if (!installed.contains(pkgName)) {
             errorExit("The app is not installed, install it first.");
             return;
@@ -235,21 +235,17 @@ public class CLI {
         commands.changeOwnership(targetApp.uid, targetApp.uid, DATA_USER_0 + pkgName);
     }
 
-    private void exportDataByName(String pkgName, String outputDir) {
-        String rootResult = commands.root();
-        if (!ADBCommands.hasRoot(rootResult)) {
-            errorExit("No adb root!");
-            return;
-        }
-        File export = new File(outputDir);
-        if (!export.exists() && !export.mkdirs()) {
-            errorExit("Unable to create " + outputDir + " directory");
-            return;
-        }
+    private void importAppsData(String outputDir) {
+        String packagesWithUID = commands.listPackagesWithUID(PackageType.ALL);
+        List<App> apps = Packages.parseWithUID(packagesWithUID);
+    }
 
-        if (!commands.exists(DATA_USER_0 + pkgName)) {
-            errorExit("Path at " + (DATA_USER_0 + pkgName) + " does not exist");
-            return;
+    private void exportDataByName(String pkgName, String outputDir) {
+        ensureRootAndDirectory(outputDir);
+
+        String phoneDataDir = DATA_USER_0 + pkgName;
+        if (!commands.exists(phoneDataDir)) {
+            errorExit(phoneDataDir + " does not exist");
         }
 
         String appDataTar = DATA_USER_0 + OUTPUT_TAR;
@@ -261,16 +257,40 @@ public class CLI {
         System.out.println(rmResult);
     }
 
-    private void exportAppData(PackageType type, String outputDir) {
+    private void exportAppsData(PackageType type, String outputDir) {
+        ensureRootAndDirectory(outputDir);
         String packagesRes = commands.listPackagesBy(type);
         List<String> packages = Packages.parseToList(packagesRes);
+        boolean tarredAny = false;
+        for (String pkgName : packages) {
+            String phoneDataDir = DATA_USER_0 + pkgName;
+            if (!commands.exists(phoneDataDir)) {
+                System.err.println(phoneDataDir + " does not exist, skipping");
+                continue;
+            }
 
-        String packagesWithUID = commands.listPackagesWithUID(type);
-        List<App> apps = Packages.parseWithUID(packagesWithUID);
+            String appDataTar = DATA_USER_0 + OUTPUT_TAR;
+            commands.tar(appDataTar, DATA_USER_0, pkgName);
+            tarredAny = true;
+            String pullOutput = commands.pull(appDataTar, outputDir + "/" + pkgName + ".tar");
+            System.out.println(pullOutput);
+        }
 
+        if (tarredAny) {
+            String rmResult = commands.rm(DATA_USER_0 + OUTPUT_TAR);
+            System.out.println(rmResult);
+        }
     }
 
-    private void importAppsData(String outputDir) {
+    private void ensureRootAndDirectory(String outputDir) {
+        String rootResult = commands.root();
+        if (!ADBCommands.hasRoot(rootResult)) {
+            errorExit("No adb root!");
+        }
+        File dir = new File(outputDir);
+        if (!dir.exists() && !dir.mkdirs()) {
+            errorExit("Unable to create " + dir + " directory");
+        }
     }
 
     private void ensureArgument(String[] args, int index, String errorMessage) {
@@ -400,7 +420,7 @@ public class CLI {
     private void export(PackageType type, String outputDir) {
         String output = commands.listPackagesBy(type);
         if (output.startsWith("package")) {
-            packages = Packages.parse(output);
+            packages = Packages.parseToSet(output);
         } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
             errorExit("'pm list packages' command failed - can't export");
             return;
@@ -494,7 +514,7 @@ public class CLI {
     private void debloat(boolean full) {
         String output = commands.listPackagesBy(PackageType.ALL);
         if (output.startsWith("package")) {
-            packages = Packages.parse(output);
+            packages = Packages.parseToSet(output);
             System.out.println("Found " + packages.size() + " packages installed on device.");
             // retain these that are installed
             bloatedPackages.retainAll(packages);
@@ -604,7 +624,7 @@ public class CLI {
         System.out.println("  export-all    [dir]      Exports both user and system packages");
         System.out.println("[ROOT] Export apps data:");
         System.out.println("  export-data [name] [dir]      Export app's data directory");
-        System.out.println("  export-data-user   [dir]      [TODO] Export all user apps' data directories");
+        System.out.println("  export-data-user   [dir]      Export all user apps' data directories");
         System.out.println();
         System.out.println("Import apps:");
         System.out.println("  import [name] [dir]        Imports package by name from given directory");

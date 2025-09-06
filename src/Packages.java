@@ -8,7 +8,7 @@ public class Packages {
 
     //parsers package names, expected form:
     //"package:com.group.example\n"
-    public static Set<String> parse(String output) {
+    public static Set<String> parseToSet(String output) {
         HashSet<String> packages = new HashSet<>();
         int outputLen = output.length();
         int index = 0, nextNewline;
@@ -36,12 +36,10 @@ public class Packages {
                 break;
             }
             int packageEnd = colon + 1;
-            pkg_name_loop:
             for (;packageEnd < outputLen; packageEnd++) {
-                switch (output.charAt(packageEnd)) {
-                    case '\r':
-                    case '\n':
-                        break pkg_name_loop;
+                char c = output.charAt(packageEnd);
+                if (c == '\r' || c == '\n') {
+                    break;
                 }
             }
             String packageName = output.substring(colon + 1, packageEnd);
