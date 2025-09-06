@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -180,7 +181,7 @@ public class CLI {
             } break;
 
             case "list-packages": {
-                String res = commands.listPackagesWithUID();
+                String res = commands.listPackagesWithUID(PackageType.ALL);
                 List<App> apps = Packages.parseWithUID(res);
                 for (App app : apps) {
                     System.out.println(app);
@@ -216,7 +217,7 @@ public class CLI {
             return;
         }
 
-        String packagesResult = commands.listPackages();
+        String packagesResult = commands.listPackagesBy(PackageType.ALL);
         Set<String> installed = Packages.parse(packagesResult);
         if (!installed.contains(pkgName)) {
             errorExit("The app is not installed, install it first.");
@@ -227,7 +228,8 @@ public class CLI {
         System.out.println(pushResult);
         commands.extractTar(phoneTar, DATA_USER_0);
         commands.rm(phoneTar);
-        List<App> apps = Packages.parseWithUID(commands.listPackagesWithUID());
+        String packagesWithUID = commands.listPackagesWithUID(PackageType.ALL);
+        List<App> apps = Packages.parseWithUID(packagesWithUID);
         App targetApp = apps.stream().filter(app -> app.name.equals(pkgName)).findFirst().get();
         System.out.println("Target app: " + targetApp);
         commands.changeOwnership(targetApp.uid, targetApp.uid, DATA_USER_0 + pkgName);
@@ -259,7 +261,12 @@ public class CLI {
         System.out.println(rmResult);
     }
 
-    private void exportAppData(PackageType packageType, String outputDir) {
+    private void exportAppData(PackageType type, String outputDir) {
+        String packagesRes = commands.listPackagesBy(type);
+        List<String> packages = Packages.parseToList(packagesRes);
+
+        String packagesWithUID = commands.listPackagesWithUID(type);
+        List<App> apps = Packages.parseWithUID(packagesWithUID);
 
     }
 
@@ -485,7 +492,7 @@ public class CLI {
     }
 
     private void debloat(boolean full) {
-        String output = commands.listPackages();
+        String output = commands.listPackagesBy(PackageType.ALL);
         if (output.startsWith("package")) {
             packages = Packages.parse(output);
             System.out.println("Found " + packages.size() + " packages installed on device.");

@@ -13,7 +13,7 @@ public class ADBCommands {
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
-            LIST_PACKAGES, LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
+            LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
@@ -55,7 +55,6 @@ public class ADBCommands {
         UNINSTALL_KEEP = joinCommand(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
         UNINSTALL_FULL = joinCommand(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
         DISABLE = joinCommand(adbTerms, "shell", "pm", "disable-user", "");
-        LIST_PACKAGES = joinCommand(adbTerms, "shell", "pm", "list", "packages");
         INSTALL_BACK = joinCommand(adbTerms, "shell", "pm", "install-existing", "");
         DEVICES = joinCommand(adbTerms, "devices");
         PM_PATH = joinCommand(adbTerms, "shell", "pm", "path", "");
@@ -69,7 +68,7 @@ public class ADBCommands {
         MK_DIR = joinCommand(adbTerms, "shell", "mkdir", "-p", "");
         RENAME = joinCommand(adbTerms, "shell", "mv", "", "");
         LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, "shell", "pm", "list", "packages", "");
-        LIST_PACKAGES_WITH_UID = joinCommand(adbTerms, "shell", "pm", "list", "packages", "-U");
+        LIST_PACKAGES_WITH_UID = joinCommand(adbTerms, "shell", "pm", "list", "packages", "-U", "");
         INSTALL_CREATE = joinCommand(adbTerms, "shell", "pm", "install-create", "-S", "");
         INSTALL_WRITE = joinCommand(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
         INSTALL_COMMIT = joinCommand(adbTerms, "shell", "pm", "install-commit", "");
@@ -284,11 +283,9 @@ public class ADBCommands {
         return executeCommandWithTimeout(DEVICES, 50);
     }
 
-    public String listPackages() {
-        return executeCommandWithTimeout(LIST_PACKAGES, 50);
-    }
-
-    public String listPackagesWithUID() {
+    public String listPackagesWithUID(PackageType type) {
+        String modifier = getPackageModifier(type);
+        LIST_PACKAGES_WITH_UID[LIST_PACKAGES_WITH_UID.length - 1] = modifier;
         return executeCommandWithTimeout(LIST_PACKAGES_WITH_UID, 50);
     }
 
@@ -297,20 +294,20 @@ public class ADBCommands {
     }
 
     public String listPackagesBy(PackageType type) {
-        String modifier = null;
-        switch (type) {
-            case ALL:
-                modifier = "";
-                break;
-            case USER:
-                modifier = "-3";
-                break;
-            case SYSTEM:
-                modifier = "-s";
-                break;
-        }
+        String modifier = getPackageModifier(type);
         LIST_PACKAGES_BY_TYPE[LIST_PACKAGES_BY_TYPE.length - 1] = modifier;
         return executeCommandWithTimeout(LIST_PACKAGES_BY_TYPE, 50);
+    }
+    private static String getPackageModifier(PackageType type) {
+        switch (type) {
+            case ALL:
+                return "";
+            case USER:
+                return "-3";
+            case SYSTEM:
+                return "-s";
+        }
+        throw new IllegalStateException("Unreachable");
     }
 }
 
