@@ -122,73 +122,69 @@ public class CLI {
 
             // Exports
             case "export": {
-                ensureArgument(args, 1, "No package name provided");
                 String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : EXPORT;
-                exportByName(name, outputDir);
-            } break;
-
-            case "export-user": {
-                String outputDir = args.length >= 2 ? args[1] : EXPORT;
-                export(PackageType.USER, outputDir);
-            } break;
-
-            case "export-system": {
-                String outputDir = args.length >= 2 ? args[1] : "export-sys";
-                export(PackageType.SYSTEM, outputDir);
-            } break;
-
-            case "export-all": {
-                String outputDir = args.length >= 2 ? args[1] : "export-all";
-                export(PackageType.ALL, outputDir);
+                if (!name.startsWith("-")) {
+                    Options opts = Options.parseOptions(args,2);
+                    String outputDir = opts.dir != null ? opts.dir : EXPORT;
+                    exportByName(name, outputDir);
+                    return;
+                }
+                Options opts = Options.parseOptions(args,1);
+                String outputDir = opts.dir != null ? opts.dir : EXPORT;
+                export(opts.packageType, outputDir);
             } break;
 
             case "export-data": {
-                ensureArgument(args, 1, "No package name provided");
-                String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : DATA_EXPORT;
-                exportDataByName(name, outputDir);
-            } break;
-
-            case "export-data-user": {
-                String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
-                exportAppsData(PackageType.USER, outputDir);
+                String pkgName = args[1];
+                if (!pkgName.startsWith("-")) {
+                    Options opts = Options.parseOptions(args,2);
+                    String outputDir = opts.dir != null ? opts.dir : DATA_EXPORT;
+                    exportDataByName(pkgName, outputDir);
+                    return;
+                }
+                Options opts = Options.parseOptions(args,1);
+                String outputDir = opts.dir != null ? opts.dir : DATA_EXPORT;
+                exportAppsData(opts.packageType, outputDir);
             } break;
 
             // Imports
             case "import": {
-                ensureArgument(args, 1, "No package name provided");
                 String name = args[1];
-                String outputDir = args.length > 2 ? args[2] : EXPORT;
-                importApps(name, outputDir);
-            } break;
-
-            case "import-all": {
-                String outputDir = args.length >= 2 ? args[1] : EXPORT;
-                importApps(null, outputDir);
+                if (!name.startsWith("-")) {
+                    Options opts = Options.parseOptions(args,2);
+                    String importDir = opts.dir != null ? opts.dir : EXPORT;
+                    importApps(name, importDir);
+                    return;
+                }
+                Options opts = Options.parseOptions(args,1);
+                String importDir = opts.dir != null ? opts.dir : EXPORT;
+                importApps(null, importDir);
             } break;
 
             case "import-data": {
-                ensureArgument(args, 1, "No package name provided");
-                String name = args[1];
-                String importDir = args.length > 2 ? args[2] : DATA_EXPORT;
-                importDataByName(name, importDir);
+                String pkgName = args[1];
+                if (!pkgName.startsWith("-")) {
+                    Options opts = Options.parseOptions(args,2);
+                    String dataDir = opts.dir != null ? opts.dir : DATA_EXPORT;
+                    importDataByName(pkgName, dataDir);
+                    return;
+                }
+                Options opts = Options.parseOptions(args,1);
+                String dataDir = opts.dir != null ? opts.dir : DATA_EXPORT;
+                importAppsData(dataDir);
             } break;
 
-            case "import-data-all": {
-                String outputDir = args.length >= 2 ? args[1] : DATA_EXPORT;
-                importAppsData(outputDir);
-            } break;
-
-            case "list-packages": {
-                String res = commands.listPackagesWithUID(PackageType.ALL);
+            case "list": {
+                Options opts = Options.parseOptions(args, 1);
+                String res = commands.listPackagesWithUID(opts.packageType);
                 List<App> apps = Packages.parseWithUID(res);
                 for (App app : apps) {
                     System.out.println(app);
                 }
+                System.out.println("Count: " + apps.size());
             } break;
 
-            case "android-version": {
+            case "android": {
                 String version = commands.getAndroidVersion();
                 System.out.println("Android " + version);
             } break;
@@ -334,8 +330,8 @@ public class CLI {
         return devices;
     }
 
-    private void importApps(String name, String outputDir) {
-        File export = new File(outputDir);
+    private void importApps(String name, String exportDir) {
+        File export = new File(exportDir);
         if (!export.exists()) {
             System.err.println(export.getAbsolutePath() + " not found");
             errorExit("Create an export or put an .apk in " + EXPORT + "/com.app.name/");
@@ -448,7 +444,6 @@ public class CLI {
                 continue;
             }
             List<String> apks = Packages.parseToList(output);
-            // System.out.println("PACKAGE PATH PARSED: " + apks);
 
             File pkgExport = Paths.get(outputDir).resolve(pkg).toFile();
             if (!pkgExport.exists() && !pkgExport.mkdirs()) {
@@ -608,31 +603,37 @@ public class CLI {
         System.out.println("  debloat-undo [file]  \"debloat\" but reversed");
         System.out.println();
         System.out.println("Manage apps:");
-        System.out.println("  disable          [name]            Disables package by name");
-        System.out.println("  uninstall        [name]            Uninstalls package by name");
-        System.out.println("  uninstall-full   [name]            Uninstalls package by name (fully)");
-        System.out.println("  install-back     [name]            Installs an existing sys package by name");
-        System.out.println("  install          [path]            Installs app from local path");
+        System.out.println("  disable          <name>            Disables package by name");
+        System.out.println("  uninstall        <name>            Uninstalls package by name");
+        System.out.println("  uninstall-full   <name>            Uninstalls package by name (fully)");
+        System.out.println("  install-back     <name>            Installs an existing sys package by name");
+        System.out.println("  install          <path>            Installs app from local path");
         System.out.println("[ROOT]:");
-        System.out.println("  uninstall-system [name]            [TODO] Uninstalls package by name (from system)");
-        System.out.println("  install-system   [path] [app_dir]  [BOOTLOOP] Installs app as system app from local path");
+        System.out.println("  uninstall-system <name>            [TODO] Uninstalls package by name (from system)");
+        System.out.println("  install-system   <path> <app_dir>  [BOOTLOOP] Installs app as system app from local path");
         System.out.println();
-        System.out.println("Export apps (dir is optional):");
-        System.out.println("  export [name] [dir]      Exports package by name");
-        System.out.println("  export-user   [dir]      Exports user packages");
-        System.out.println("  export-system [dir]      Exports system packages");
-        System.out.println("  export-all    [dir]      Exports both user and system packages");
-        System.out.println("[ROOT] Export apps data:");
-        System.out.println("  export-data [name] [dir]      Export app's data directory");
-        System.out.println("  export-data-user   [dir]      Export all user apps' data directories");
+        System.out.println("EXPORT:");
+        System.out.println("  export <name> [options]            Exports package by name");
+        System.out.println("  export [options]                   Exports many packages");
+        System.out.println("  export-data <name> [options]       [ROOT] Export app's data directory");
+        System.out.println("  export-data [options]              [ROOT] Export many apps' data directories");
         System.out.println();
-        System.out.println("Import apps:");
-        System.out.println("  import [name] [dir]        Imports package by name from given directory");
-        System.out.println("  import-all    [dir]        Imports all packages from given directory");
-        System.out.println("[ROOT] Import apps data:");
-        System.out.println("  import-data [name] [dir]   Import app's data directory");
-        System.out.println("  import-data-all    [dir]   [TODO] Import all apps' data");
+        System.out.println("IMPORT:");
+        System.out.println("  import <name> [options]            Imports package by name from given directory");
+        System.out.println("  import [options]                   Imports all packages from given directory");
+        System.out.println("  import-data <name> [options]       [ROOT] Import app's data directory");
+        System.out.println("  import-data [options]              [TODO] Import all apps' data");
         System.out.println();
+        System.out.println("Options:");
+        System.out.println("  --user, -u                         User packages scope");
+        System.out.println("  --system, -s                       System packages scope");
+        System.out.println("  --all, -a                          All packages scope");
+        System.out.println("  --no-cache, --skip-cache           [TODO] Skip cache during import or export");
+        System.out.println("  --dir, -d <dir>                    Directory to export to or import from");
+        System.out.println();
+        System.out.println("Bonus:");
+        System.out.println("  android                            Display Android version");
+        System.out.println("  list [options]                     List packages");
     }
 
     public static void errorExit(String message) {
