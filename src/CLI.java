@@ -600,7 +600,7 @@ public class CLI {
         System.out.println("Debloat (packages.txt) (no root) (will prompt)");
         System.out.println("  debloat              Uninstalls packages listed in packages.txt");
         System.out.println("  debloat-full         \"debloat\" but also deletes package data");
-        System.out.println("  debloat-undo [file]  \"debloat\" but reversed");
+        System.out.println("  debloat-undo <file>  \"debloat\" but reversed");
         System.out.println();
         System.out.println("Manage apps:");
         System.out.println("  disable          <name>            Disables package by name");

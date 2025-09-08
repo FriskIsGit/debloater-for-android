@@ -39,7 +39,15 @@ $ ./rerun.sh
 $ rerun.bat
 ```
 
-## Commands
+## Debloat commands
+All the apps uninstalled in the process will be dumped to a file, 
+so the operation can be reversed by running `debloat-undo`
+```
+debloat              Uninstalls packages listed in packages.txt
+debloat-full         "debloat" but also deletes package data
+
+debloat-undo <file>  "debloat" but reversed
+```
 
 ## ADB compatibility
 Refer to release notes: https://developer.android.com/tools/releases/platform-tools
@@ -50,6 +58,17 @@ version 34.0.5 (October 2023) and above come bundled with new DbC interface for 
 which may cause adb to crash on older systems
 
 ## Exports/Imports
+Exporting all user apps to directory `apps`
+```shell
+./run export --user --dir apps 
+```
+importing from directory
+```shell
+./run import --dir apps
+```
+
+<br>
+
 It's possible to export app data
 ```shell
 ./run export-data com.package.name
@@ -59,4 +78,5 @@ and import with
 ./run import-data com.package.name
 ```
 but the use is limited if the app uses (hardware-backed) Android Keystore.
-Simply clearing app's data from settings causes the OS to reset the data for this app in the keystore as well, making the backup useless.
+Simply clearing app's data from settings causes the OS to reset the data for this app in the keystore as well,
+making the backup useless.
