@@ -66,6 +66,7 @@ com.google.android.apps.walletnfcrel
 com.google.android.apps.setupwizard.searchselector
 com.google.android.apps.subscriptions.red
 com.google.android.apps.cloudprint
+com.google.android.apps.healthdata
 com.google.android.as
 com.google.android.as.oss
 com.google.android.calendar
@@ -117,6 +118,8 @@ com.mi.global.bbs
 com.mi.global.shop
 com.mi.globalbrowser
 com.mi.healthglobal
+com.mi.health
+com.mi.appfinder
 com.micredit.in
 com.microsoft.appmanager
 com.microsoft.skydrive
@@ -141,16 +144,19 @@ com.miui.msa.global
 com.miui.newmidrive
 com.miui.phrase
 com.miui.qr
+com.miui.thirdappassistant
 com.miui.touchassistant
 com.miui.translation.kingsoft
 com.miui.translation.xmcloud
 com.miui.translation.youdao
 com.miui.translationservice
+com.miui.tsmclient
 com.miui.vsimcore
 com.miui.wmsvc
 com.miui.yellowpage
 com.mobeam.barcodeService
 com.netflix.partner.activation
+com.opera.preinstall
 com.qti.confuridialer
 com.qualcomm.atfwd
 com.qualcomm.qti.modemtestmode
@@ -401,7 +407,6 @@ com.miui.personalassistant
 com.miui.contentcatcher
 com.xiaomi.barrage
 com.xiaomi.mirror
-com.mi.health
 com.android.healthconnect.controller
 com.xiaomi.aicr
 com.xiaomi.aiasst.vision
@@ -416,7 +421,6 @@ com.xiaomi.otrpbroker
 com.quicinc.voice.activation
 com.google.android.soundpicker
 com.miuix.editor
-eu.xiaomi.ext
 com.rongcard.eidapi
 com.dti.bouyguestelecom
 com.altice.android.myapps
@@ -429,3 +433,6 @@ com.orange.update
 com.google.android.accessibility.switchaccess
 com.android.quicksearchbox
 com.miui.nextpay
+de.telekom.tsc
+eu.xiaomi.ext
+
