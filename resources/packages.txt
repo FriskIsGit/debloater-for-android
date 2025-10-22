@@ -117,6 +117,7 @@ com.mi.android.globalpersonalassistant
 com.mi.global.bbs
 com.mi.global.shop
 com.mi.globalbrowser
+com.mi.globalminusscreen
 com.mi.healthglobal
 com.mi.health
 com.mi.appfinder
