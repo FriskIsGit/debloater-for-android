@@ -91,6 +91,7 @@ public class CLI {
                 System.out.println(result);
             } break;
 
+            case "install-existing":
             case "install-back": {
                 ensureArgument(args, 1, "No package name provided.");
                 String pkg = args[1];
@@ -122,6 +123,7 @@ public class CLI {
 
             // Exports
             case "export": {
+                ensureArgument(args, 1, noPackageOrFlagGivenErrorMessage(action));
                 String name = args[1];
                 if (!name.startsWith("-")) {
                     Options opts = Options.parseOptions(args,2);
@@ -135,6 +137,7 @@ public class CLI {
             } break;
 
             case "export-data": {
+                ensureArgument(args, 1, noPackageOrFlagGivenErrorMessage(action));
                 String pkgName = args[1];
                 if (!pkgName.startsWith("-")) {
                     Options opts = Options.parseOptions(args,2);
@@ -149,6 +152,7 @@ public class CLI {
 
             // Imports
             case "import": {
+                ensureArgument(args, 1, noPackageOrFlagGivenErrorMessage(action));
                 String name = args[1];
                 if (!name.startsWith("-")) {
                     Options opts = Options.parseOptions(args,2);
@@ -162,6 +166,7 @@ public class CLI {
             } break;
 
             case "import-data": {
+                ensureArgument(args, 1, noPackageOrFlagGivenErrorMessage(action));
                 String pkgName = args[1];
                 if (!pkgName.startsWith("-")) {
                     Options opts = Options.parseOptions(args,2);
@@ -184,6 +189,7 @@ public class CLI {
                 System.out.println("Count: " + apps.size());
             } break;
 
+            case "Android":
             case "android": {
                 String version = commands.getAndroidVersion();
                 System.out.println("Android " + version);
@@ -193,6 +199,10 @@ public class CLI {
                 errorExit("Unrecognized action command: " + action);
                 break;
         }
+    }
+
+    private String noPackageOrFlagGivenErrorMessage(String action) {
+        return "No package name or flag given. Usage: " + action + " <name> [options]";
     }
 
     private void importDataByName(String pkgName, String importDir) {
