@@ -1,5 +1,7 @@
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
@@ -12,12 +14,12 @@ public class ADBCommands {
     public static final String FULL_BACKUP_COMMAND = "adb backup -apk -obb -shared -all -system -f backup.ab";
 
     private final ProcessBuilder procBuilder = new ProcessBuilder();
-    private String[] UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
+    private CommandTemplate UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION;
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU;
 
 
     public static ADBCommands fromDir(String adbDir) {
@@ -52,34 +54,35 @@ public class ADBCommands {
     }
 
     private void setupCommands(String... adbTerms) {
-        UNINSTALL_KEEP = joinCommand(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
-        UNINSTALL_FULL = joinCommand(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
-        DISABLE = joinCommand(adbTerms, "shell", "pm", "disable-user", "");
-        INSTALL_BACK = joinCommand(adbTerms, "shell", "pm", "install-existing", "");
-        DEVICES = joinCommand(adbTerms, "devices");
-        PM_PATH = joinCommand(adbTerms, "shell", "pm", "path", "");
-        ADB_PULL = joinCommand(adbTerms, "pull", "", "");
-        TAR = joinCommand(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
-        EXTRACT_TAR = joinCommand(adbTerms, "shell", "tar", "xfp", "", "-C", "");
-        CHOWN_RECURSE = joinCommand(adbTerms, "shell", "chown", "-R", "", "");
-        RESTORECON = joinCommand(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
-        RM = joinCommand(adbTerms, "shell", "rm", "-f", "");
-        ADB_PUSH = joinCommand(adbTerms, "push", "", "");
-        MK_DIR = joinCommand(adbTerms, "shell", "mkdir", "-p", "");
-        RENAME = joinCommand(adbTerms, "shell", "mv", "", "");
-        LIST_PACKAGES_BY_TYPE = joinCommand(adbTerms, "shell", "pm", "list", "packages", "");
-        LIST_PACKAGES_WITH_UID = joinCommand(adbTerms, "shell", "pm", "list", "packages", "-U", "");
-        INSTALL_CREATE = joinCommand(adbTerms, "shell", "pm", "install-create", "-S", "");
-        INSTALL_WRITE = joinCommand(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
-        INSTALL_COMMIT = joinCommand(adbTerms, "shell", "pm", "install-commit", "");
-        ADB_INSTALL = joinCommand(adbTerms, "install", "");
-        ADB_INSTALL_MULTIPLE = joinCommand(adbTerms, "install-multiple");
-        ADB_ROOT = joinCommand(adbTerms, "root");
-        ADB_UNROOT = joinCommand(adbTerms, "unroot");
-        MOUNT_READ_ONLY = joinCommand(adbTerms, "shell", "mount", "-o", "ro,remount", "");
-        MOUNT_READ_WRITE = joinCommand(adbTerms, "shell", "mount", "-o", "rw,remount", "");
-        ANDROID_VERSION = joinCommand(adbTerms, "shell", "getprop", "ro.build.version.release");
-        EXISTS = joinCommand(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
+        UNINSTALL_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
+        UNINSTALL_FULL = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
+        DISABLE = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
+        INSTALL_BACK = new CommandTemplate(adbTerms, "shell", "pm", "install-existing", "");
+        DEVICES = new CommandTemplate(adbTerms, "devices");
+        PM_PATH = new CommandTemplate(adbTerms, "shell", "pm", "path", "");
+        ADB_PULL = new CommandTemplate(adbTerms, "pull", "", "");
+        TAR = new CommandTemplate(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
+        EXTRACT_TAR = new CommandTemplate(adbTerms, "shell", "tar", "xfp", "", "-C", "");
+        CHOWN_RECURSE = new CommandTemplate(adbTerms, "shell", "chown", "-R", "", "");
+        RESTORECON = new CommandTemplate(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
+        RM = new CommandTemplate(adbTerms, "shell", "rm", "-f", "");
+        ADB_PUSH = new CommandTemplate(adbTerms, "push", "", "");
+        MK_DIR = new CommandTemplate(adbTerms, "shell", "mkdir", "-p", "");
+        RENAME = new CommandTemplate(adbTerms, "shell", "mv", "", "");
+        LIST_PACKAGES_BY_TYPE = new CommandTemplate(adbTerms, "shell", "pm", "list", "packages", "");
+        LIST_PACKAGES_WITH_UID = new CommandTemplate(adbTerms, "shell", "pm", "list", "packages", "-U", "");
+        INSTALL_CREATE = new CommandTemplate(adbTerms, "shell", "pm", "install-create", "-S", "");
+        INSTALL_WRITE = new CommandTemplate(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
+        INSTALL_COMMIT = new CommandTemplate(adbTerms, "shell", "pm", "install-commit", "");
+        ADB_INSTALL = new CommandTemplate(adbTerms, "install", "");
+        ADB_INSTALL_MULTIPLE = new CommandTemplate(adbTerms, "install-multiple");
+        ADB_ROOT = new CommandTemplate(adbTerms, "root");
+        ADB_UNROOT = new CommandTemplate(adbTerms, "unroot");
+        MOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
+        MOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
+        ANDROID_VERSION = new CommandTemplate(adbTerms, "shell", "getprop", "ro.build.version.release");
+        EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
+        CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
     }
 
     private static String[] joinCommand(String[] terms, String... command) {
@@ -102,8 +105,8 @@ public class ADBCommands {
         }
     }
 
-    public String executeCommandWithTimeout(String[] commands, long timeoutMs) {
-        procBuilder.command(commands);
+    public String executeCommandWithTimeout(String[] command, long timeoutMs) {
+        procBuilder.command(command);
         procBuilder.redirectErrorStream(true);
         try {
             Process proc = procBuilder.start();
@@ -116,85 +119,71 @@ public class ADBCommands {
     }
 
     public String uninstallPackageFully(String pkgName) {
-        UNINSTALL_FULL[UNINSTALL_FULL.length - 1] = pkgName;
-        return executeCommandWithTimeout(UNINSTALL_FULL, 3000);
+        return executeCommandWithTimeout(UNINSTALL_FULL.build(pkgName), 3000);
     }
 
     public String uninstallPackage(String pkgName) {
-        UNINSTALL_KEEP[UNINSTALL_KEEP.length - 1] = pkgName;
-        return executeCommandWithTimeout(UNINSTALL_KEEP, 3000);
+        return executeCommandWithTimeout(UNINSTALL_KEEP.build(pkgName), 3000);
     }
 
     public String disablePackageByName(String pkgName) {
-        DISABLE[DISABLE.length - 1] = pkgName;
-        return executeCommandWithTimeout(DISABLE, 3000);
+        return executeCommandWithTimeout(DISABLE.build(pkgName), 3000);
     }
 
     public String installExistingPackage(String pkgName) {
-        INSTALL_BACK[INSTALL_BACK.length - 1] = pkgName;
-        return executeCommandWithTimeout(INSTALL_BACK, 3000);
+        return executeCommandWithTimeout(INSTALL_BACK.build(pkgName), 3000);
     }
 
     public String getPackagePath(String pkgName) {
-        PM_PATH[PM_PATH.length - 1] = pkgName;
-        return executeCommandWithTimeout(PM_PATH, 3000);
+        return executeCommandWithTimeout(PM_PATH.build(pkgName), 3000);
     }
 
     public String changeOwnership(String owner, String group, String phonePath) {
-        CHOWN_RECURSE[CHOWN_RECURSE.length - 2] = owner + ":" + group;
-        CHOWN_RECURSE[CHOWN_RECURSE.length - 1] = phonePath;
-        System.out.println(Arrays.toString(CHOWN_RECURSE));
-        return executeCommandWithTimeout(CHOWN_RECURSE, 3000);
+        String[] command = CHOWN_RECURSE.build(owner + ":" + group, phonePath);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
     }
 
     // tar commands will override existing files in phone storage
     public String tar(String tarPath, String changedDir, String firstDir) {
-        TAR[TAR.length - 4] = tarPath;
-        TAR[TAR.length - 2] = changedDir;
-        TAR[TAR.length - 1] = firstDir;
-        System.out.println(Arrays.toString(TAR));
-        return executeCommandWithTimeout(TAR, 3000);
+        String[] command = TAR.build(
+                tarPath,
+                changedDir,
+                firstDir
+        );
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String extractTar(String tarPath, String changedDir) {
-        EXTRACT_TAR[EXTRACT_TAR.length - 3] = tarPath;
-        EXTRACT_TAR[EXTRACT_TAR.length - 1] = changedDir;
-        System.out.println(Arrays.toString(EXTRACT_TAR));
-        return executeCommandWithTimeout(EXTRACT_TAR, 3000);
+        String[] command = EXTRACT_TAR.build(tarPath, changedDir);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String pullAPK(String apkPath, String toPath) {
-        ADB_PULL[ADB_PULL.length - 2] = apkPath;
-        ADB_PULL[ADB_PULL.length - 1] = toPath;
-        return executeCommandWithTimeout(ADB_PULL, 3000);
+        return executeCommandWithTimeout(ADB_PULL.build(apkPath, toPath), 3000);
     }
 
     public String pull(String phonePath, String pcPath) {
-        ADB_PULL[ADB_PULL.length - 2] = phonePath;
-        ADB_PULL[ADB_PULL.length - 1] = pcPath;
-        // System.out.println(Arrays.toString(PULL));
-        return executeCommandWithTimeout(ADB_PULL, 3000);
+        return executeCommandWithTimeout(ADB_PULL.build(phonePath, pcPath), 3000);
     }
 
     public String push(String pcPath, String phonePath) {
-        ADB_PUSH[ADB_PUSH.length - 2] = pcPath;
-        ADB_PUSH[ADB_PUSH.length - 1] = phonePath;
-        return executeCommandWithTimeout(ADB_PUSH, 3000);
+        return executeCommandWithTimeout(ADB_PUSH.build(pcPath, phonePath), 3000);
     }
 
     public String mkdir(String phonePath) {
-        MK_DIR[MK_DIR.length - 1] = phonePath;
-        return executeCommandWithTimeout(MK_DIR, 3000);
+        return executeCommandWithTimeout(MK_DIR.build(phonePath), 3000);
     }
 
     public String rm(String phonePath) {
-        RM[RM.length - 1] = phonePath;
-        return executeCommandWithTimeout(RM, 3000);
+        return executeCommandWithTimeout(RM.build(phonePath), 3000);
     }
 
     public boolean exists(String phonePath) {
-        EXISTS[EXISTS.length - 4] = phonePath;
-        return executeCommandWithTimeout(EXISTS, 3000).startsWith("Yes");
+        String[] command = EXISTS.build(phonePath);
+        return executeCommandWithTimeout(command, 3000).startsWith("Yes");
     }
 
     public String rename(String phonePath) {
@@ -204,37 +193,38 @@ public class ADBCommands {
     }
 
     public String install(String path) {
-        ADB_INSTALL[ADB_INSTALL.length - 1] = path;
-        return executeCommandWithTimeout(ADB_INSTALL, 3000);
+        return executeCommandWithTimeout(ADB_INSTALL.build(path), 3000);
     }
     public String createInstall(int totalSizeBytes) {
-        INSTALL_CREATE[INSTALL_CREATE.length - 1] = String.valueOf(totalSizeBytes);
-        return executeCommandWithTimeout(INSTALL_CREATE, 3000);
+        String[] command = INSTALL_CREATE.build(String.valueOf(totalSizeBytes));
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String installMultiple(String[] apks) {
-        String[] installMultiple = joinCommand(ADB_INSTALL_MULTIPLE, apks);
+        String[] installMultiple = joinCommand(ADB_INSTALL_MULTIPLE.build(), apks);
         return executeCommandWithTimeout(installMultiple, 3000);
     }
     public String installWrite(long splitApkSize, int sessionId, int index, String path) {
-        INSTALL_WRITE[INSTALL_WRITE.length - 4] = String.valueOf(splitApkSize);
-        INSTALL_WRITE[INSTALL_WRITE.length - 3] = String.valueOf(sessionId);
-        INSTALL_WRITE[INSTALL_WRITE.length - 2] = String.valueOf(index);
-        INSTALL_WRITE[INSTALL_WRITE.length - 1] = path;
-        return executeCommandWithTimeout(INSTALL_WRITE, 3000);
+        String[] command = INSTALL_WRITE.build(
+            String.valueOf(splitApkSize),
+            String.valueOf(sessionId),
+            String.valueOf(index),
+            path
+        );
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String installCommit(int sessionId) {
-        INSTALL_COMMIT[INSTALL_COMMIT.length - 1] = String.valueOf(sessionId);
-        return executeCommandWithTimeout(INSTALL_COMMIT, 3000);
+        String[] command = INSTALL_COMMIT.build(String.valueOf(sessionId));
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String installExistingPackage(String pkgName, int maxOutputLen) {
-        INSTALL_BACK[INSTALL_BACK.length - 1] = pkgName;
-        return executeCommandTrim(INSTALL_BACK, maxOutputLen);
+        String[] command = INSTALL_BACK.build(pkgName);
+        return executeCommandTrim(command, maxOutputLen);
     }
 
-    public String installsAsSystemApp(String apkPath, String appDir) {
+    public String installAsSystemApp(String apkPath, String appDir) {
         String partition = "/";
         String rwResult = remountReadWrite(partition);
         if (rwResult.startsWith("adb: error:")) {
@@ -260,43 +250,49 @@ public class ADBCommands {
         return output.startsWith("restarting adbd as root") || output.startsWith("adbd is already running as root");
     }
 
+    public boolean checkSU() {
+        String[] command = CHECK_SU.buildPrivileged();
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000).contains("uid=0");
+    }
+
     public String root() {
-        return executeCommandWithTimeout(ADB_ROOT, 3000);
+        return executeCommandWithTimeout(ADB_ROOT.build(), 3000);
     }
 
     public String unroot() {
-        return executeCommandWithTimeout(ADB_UNROOT, 3000);
+        return executeCommandWithTimeout(ADB_UNROOT.build(), 3000);
     }
 
     public String remountReadOnly(String partition) {
-        MOUNT_READ_ONLY[MOUNT_READ_ONLY.length - 1] = partition;
-        return executeCommandWithTimeout(MOUNT_READ_ONLY, 3000);
+        String[] command = MOUNT_READ_ONLY.build(partition);
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String remountReadWrite(String partition) {
-        MOUNT_READ_WRITE[MOUNT_READ_WRITE.length - 1] = partition;
-        return executeCommandWithTimeout(MOUNT_READ_WRITE, 3000);
+        String[] command = MOUNT_READ_WRITE.build(partition);
+        return executeCommandWithTimeout(command, 3000);
     }
 
     // These commands don't require a timeout, but it makes them more reliable
     public String listDevices() {
-        return executeCommandWithTimeout(DEVICES, 50);
+        return executeCommandWithTimeout(DEVICES.build(), 50);
     }
 
     public String listPackagesWithUID(PackageType type) {
         String modifier = getPackageModifier(type);
-        LIST_PACKAGES_WITH_UID[LIST_PACKAGES_WITH_UID.length - 1] = modifier;
-        return executeCommandWithTimeout(LIST_PACKAGES_WITH_UID, 50);
+        String[] command = LIST_PACKAGES_WITH_UID.build(modifier);
+        return executeCommandWithTimeout(command, 50);
     }
 
     public String getAndroidVersion() {
-        return executeCommandWithTimeout(ANDROID_VERSION, 50);
+        return executeCommandWithTimeout(ANDROID_VERSION.build(), 50);
     }
 
     public String listPackagesBy(PackageType type) {
         String modifier = getPackageModifier(type);
-        LIST_PACKAGES_BY_TYPE[LIST_PACKAGES_BY_TYPE.length - 1] = modifier;
-        return executeCommandWithTimeout(LIST_PACKAGES_BY_TYPE, 50);
+        String[] command = LIST_PACKAGES_BY_TYPE.build(modifier);
+        return executeCommandWithTimeout(command, 50);
     }
     private static String getPackageModifier(PackageType type) {
         switch (type) {
@@ -313,4 +309,64 @@ public class ADBCommands {
 
 enum PackageType {
     SYSTEM, USER, ALL
+}
+
+enum PrivilegeType {
+    ADB_ROOT, SU
+}
+
+class CommandTemplate {
+    private static final List<String> SU_TERMS = Arrays.asList("su", "-c");
+    private final String[] adbTerms;
+    private final String[] components; // Empty components are placeholders for arguments
+
+    public CommandTemplate(String[] adbTerms, String... components) {
+        this.adbTerms = adbTerms;
+        this.components = components;
+    }
+
+    public String[] build(String... args) {
+        return build(false, args);
+    }
+
+    public String[] buildPrivileged(String... args) {
+        return build(true, args);
+    }
+
+    private String[] build(boolean su, String... args) {
+        List<String> command = new ArrayList<>(adbTerms.length + components.length + 2);
+        List<String> filledArgs = new ArrayList<>(components.length + 2);
+
+        command.addAll(Arrays.asList(adbTerms));
+        boolean isShell = components.length > 0 && components[0].equals("shell");
+        boolean wrapInner = su && isShell;
+        int startIndex = 0;
+        if (wrapInner) {
+            command.add("shell");
+            command.addAll(SU_TERMS);
+            startIndex = 1;
+        }
+
+        int a = 0;
+        for (int i = startIndex; i < components.length; i++) {
+            String component = components[i];
+            if (!component.isEmpty()) {
+                filledArgs.add(component);
+                continue;
+            }
+            if (a == args.length) {
+                Utilities.errExit("Command structure error. Too many arguments given for template: " + Arrays.toString(components));
+            }
+            String arg = args[a++];
+            filledArgs.add(arg);
+        }
+        if (wrapInner) {
+            String innerCommand = String.join(" ", filledArgs);
+            command.add(innerCommand);
+        } else {
+            command.addAll(filledArgs);
+        }
+
+        return command.toArray(new String[0]);
+    }
 }

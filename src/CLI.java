@@ -10,7 +10,7 @@ import java.util.*;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
-    private static final boolean SIMULATE_DEVICE = false;
+    private static final boolean SIMULATE_DEVICE = true;
     private static final String DATA_USER_0 = "/data/user/0/";
     private static final String OUTPUT_TAR = "output.tar";
     private static final String IMPORT_TAR = "import.tar";
@@ -111,7 +111,7 @@ public class CLI {
                 errorExit("Unsafe command");
                 String apkPath = args[1];
                 String appDirName = args.length > 2 ? args[2] : "";
-                String result = commands.installsAsSystemApp(apkPath, appDirName);
+                String result = commands.installAsSystemApp(apkPath, appDirName);
                 System.out.println(result);
             } break;
 
@@ -195,6 +195,11 @@ public class CLI {
                 System.out.println("Android " + version);
             } break;
 
+            case "checkSU":
+                boolean res = commands.checkSU();
+                System.out.println("SU access: " + res);
+                break;
+
             default:
                 errorExit("Unrecognized action command: " + action);
                 break;
@@ -247,7 +252,7 @@ public class CLI {
     }
 
     private void exportDataByName(String pkgName, String outputDir) {
-        ensureRootAndDirectory(outputDir);
+        ensurePrivilegedAndEnsureDirectory(outputDir);
 
         String phoneDataDir = DATA_USER_0 + pkgName;
         if (!commands.exists(phoneDataDir)) {
@@ -264,7 +269,7 @@ public class CLI {
     }
 
     private void exportAppsData(PackageType type, String outputDir) {
-        ensureRootAndDirectory(outputDir);
+        PrivilegeType privilege = ensurePrivilegedAndEnsureDirectory(outputDir);
         String packagesRes = commands.listPackagesBy(type);
         List<String> packages = Packages.parseToList(packagesRes);
         boolean tarredAny = false;
@@ -288,15 +293,21 @@ public class CLI {
         }
     }
 
-    private void ensureRootAndDirectory(String outputDir) {
+    private PrivilegeType ensurePrivilegedAndEnsureDirectory(String outputDir) {
         String rootResult = commands.root();
+        PrivilegeType privilege = PrivilegeType.ADB_ROOT;
         if (!ADBCommands.hasRoot(rootResult)) {
-            errorExit("No adb root!");
+            System.out.println("No adb root. Trying su");
+            if (!commands.checkSU()) {
+                errorExit("No su access.");
+            }
+            privilege = PrivilegeType.SU;
         }
         File dir = new File(outputDir);
         if (!dir.exists() && !dir.mkdirs()) {
             errorExit("Unable to create " + dir + " directory");
         }
+        return privilege;
     }
 
     private void ensureArgument(String[] args, int index, String errorMessage) {
