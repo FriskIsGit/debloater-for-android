@@ -17,6 +17,7 @@ public class CLI {
     private static final String IMPORT_TAR = "import.tar";
     private static final String DATA_EXPORT = "data-export";
     private static final String EXPORT = "export";
+    private static final String TEMP_DIR = "temp_unpack";
 
     private ADBCommands commands;
     private List<String> bloatedPackages;
@@ -102,10 +103,21 @@ public class CLI {
 
             case "install": {
                 ensureArgument(args, 1, "No path provided.");
-                // detect extension .apkm and do install-multiple
-                String pkg = args[1];
-                String result = commands.install(pkg);
-                System.out.println(result);
+                String appPath = args[1];
+                String ext = Utilities.getExtension(appPath);
+                if (ext.equals("apkm")) {
+                    List<String> apks = Collections.emptyList();
+                    try {
+                        apks = Utilities.unpackApkm(appPath, TEMP_DIR);
+                    } catch (Exception e) {
+                        errorExit(e.toString());
+                    }
+                    String res = commands.installMultiple(apks.toArray(new String[0]));
+                    System.out.println(res);
+                } else {
+                    String result = commands.install(appPath);
+                    System.out.println(result);
+                }
             } break;
 
             case "install-system": {

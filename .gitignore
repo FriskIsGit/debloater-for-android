@@ -8,3 +8,6 @@ pom.xml
 /data-export*
 *.iml
 *.txt
+*.apk
+*.apkm
+/temp_unpack

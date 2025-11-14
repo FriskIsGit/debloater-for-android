@@ -1,14 +1,20 @@
+import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class Utilities {
     public static final int MAX_LEN = 1073741823;
@@ -88,5 +94,46 @@ public class Utilities {
     public static void errExit(String message) {
         System.err.println(message);
         System.exit(1);
+    }
+
+    public static String getExtension(String filename) {
+        if (filename == null) {
+            return "";
+        }
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot == -1) {
+            return "";
+        }
+        return filename.substring(lastDot + 1);
+    }
+
+    public static List<String> unpackApkm(String apkmPath, String dest) throws IOException {
+        Path srcPath = Paths.get(apkmPath);
+        Path destPath = Paths.get(dest);
+        Files.createDirectories(destPath);
+        List<String> unpacked = new ArrayList<>();
+        try (ZipInputStream zipStream = new ZipInputStream(new BufferedInputStream(Files.newInputStream(srcPath)))) {
+            for (ZipEntry entry; (entry = zipStream.getNextEntry()) != null; ) {
+                if (entry.isDirectory()) {
+                    continue;
+                }
+                String fileName = entry.getName();
+                String ext = getExtension(fileName);
+                if (fileName.contains("/") || !ext.equals("apk")) {
+                    continue;
+                }
+                Path destFile = destPath.resolve(fileName);
+                Files.copy(zipStream, destFile, StandardCopyOption.REPLACE_EXISTING);
+                unpacked.add(destFile.toString());
+            }
+        }
+        return unpacked;
+    }
+
+    public static String[] joinCommand(String[] terms, String... command) {
+        String[] joined = new String[terms.length + command.length];
+        System.arraycopy(terms, 0, joined, 0, terms.length);
+        System.arraycopy(command, 0, joined, terms.length, command.length);
+        return joined;
     }
 }

@@ -86,13 +86,6 @@ public class ADBCommands {
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
     }
 
-    private static String[] joinCommand(String[] terms, String... command) {
-        String[] joined = new String[terms.length + command.length];
-        System.arraycopy(terms, 0, joined, 0, terms.length);
-        System.arraycopy(command, 0, joined, terms.length, command.length);
-        return joined;
-    }
-
     public String executeCommandTrim(String[] commands, int maxLen) {
         procBuilder.command(commands);
         procBuilder.redirectErrorStream(true);
@@ -212,8 +205,8 @@ public class ADBCommands {
     }
 
     public String installMultiple(String[] apks) {
-        String[] installMultiple = joinCommand(ADB_INSTALL_MULTIPLE.build(), apks);
-        return executeCommandWithTimeout(installMultiple, 3000);
+        String[] installMultiple = ADB_INSTALL_MULTIPLE.build(apks);
+        return executeCommandWithTimeout(installMultiple, 30_000);
     }
     public String installWrite(long splitApkSize, int sessionId, int index, String path) {
         String[] command = INSTALL_WRITE.build(
@@ -356,7 +349,7 @@ class CommandTemplate {
 
     public String[] build(boolean su, String... args) {
         List<String> command = new ArrayList<>(adbTerms.length + components.length + 2);
-        List<String> filledArgs = new ArrayList<>(components.length + 2);
+        List<String> filledArgs = new ArrayList<>();
 
         command.addAll(Arrays.asList(adbTerms));
         boolean isShell = components.length > 0 && components[0].equals("shell");
@@ -376,11 +369,13 @@ class CommandTemplate {
                 continue;
             }
             if (a == args.length) {
-                Utilities.errExit("Command structure error. Too many arguments given for template: " + Arrays.toString(components));
+                Utilities.errExit("Command structure error - template arguments not satisfied: " + Arrays.toString(components));
             }
             String arg = args[a++];
             filledArgs.add(arg);
         }
+        // Append additional remaining arguments
+        filledArgs.addAll(Arrays.asList(args).subList(a, args.length));
         if (wrapInner) {
             String innerCommand = String.join(" ", filledArgs);
             command.add(innerCommand);
