@@ -13,14 +13,14 @@ public class ADBCommands {
     public static final String DISABLE_APP_COMMAND_2 = "pm disable-user PACKAGE";
     public static final String FULL_BACKUP_COMMAND = "adb backup -apk -obb -shared -all -system -f backup.ab";
 
+    PrivilegeType privilege = null;
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU;
-
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU, MOVE;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -83,6 +83,7 @@ public class ADBCommands {
         ANDROID_VERSION = new CommandTemplate(adbTerms, "shell", "getprop", "ro.build.version.release");
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
+        MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
     }
 
     private static String[] joinCommand(String[] terms, String... command) {
@@ -139,14 +140,16 @@ public class ADBCommands {
     }
 
     public String changeOwnership(String owner, String group, String phonePath) {
-        String[] command = CHOWN_RECURSE.build(owner + ":" + group, phonePath);
+        String[] command = CHOWN_RECURSE.build(isSU(), owner + ":" + group, phonePath);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
 
     // tar commands will override existing files in phone storage
+    // firstDir is path relative to changedDir that is put in the archive
     public String tar(String tarPath, String changedDir, String firstDir) {
         String[] command = TAR.build(
+                isSU(),
                 tarPath,
                 changedDir,
                 firstDir
@@ -156,7 +159,7 @@ public class ADBCommands {
     }
 
     public String extractTar(String tarPath, String changedDir) {
-        String[] command = EXTRACT_TAR.build(tarPath, changedDir);
+        String[] command = EXTRACT_TAR.build(isSU(), tarPath, changedDir);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
@@ -174,15 +177,23 @@ public class ADBCommands {
     }
 
     public String mkdir(String phonePath) {
-        return executeCommandWithTimeout(MK_DIR.build(phonePath), 3000);
+        String[] command = MK_DIR.build(isSU(), phonePath);
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String rm(String phonePath) {
-        return executeCommandWithTimeout(RM.build(phonePath), 3000);
+        String[] command = RM.build(phonePath);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 4000);
+    }
+
+    public String rmSU(String phonePath) {
+        String[] command = RM.buildSU(phonePath);
+        return executeCommandWithTimeout(command, 4000);
     }
 
     public boolean exists(String phonePath) {
-        String[] command = EXISTS.build(phonePath);
+        String[] command = EXISTS.build(isSU(), phonePath);
         return executeCommandWithTimeout(command, 3000).startsWith("Yes");
     }
 
@@ -251,9 +262,13 @@ public class ADBCommands {
     }
 
     public boolean checkSU() {
-        String[] command = CHECK_SU.buildPrivileged();
+        String[] command = CHECK_SU.buildSU();
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000).contains("uid=0");
+    }
+
+    public boolean isSU() {
+        return privilege == PrivilegeType.SU;
     }
 
     public String root() {
@@ -265,12 +280,12 @@ public class ADBCommands {
     }
 
     public String remountReadOnly(String partition) {
-        String[] command = MOUNT_READ_ONLY.build(partition);
+        String[] command = MOUNT_READ_ONLY.build(isSU(), partition);
         return executeCommandWithTimeout(command, 3000);
     }
 
     public String remountReadWrite(String partition) {
-        String[] command = MOUNT_READ_WRITE.build(partition);
+        String[] command = MOUNT_READ_WRITE.build(isSU(), partition);
         return executeCommandWithTimeout(command, 3000);
     }
 
@@ -305,6 +320,12 @@ public class ADBCommands {
         }
         throw new IllegalStateException("Unreachable");
     }
+
+    public String moveSU(String phoneSrc, String phoneDestination) {
+        String[] command = MOVE.buildSU(phoneSrc, phoneDestination);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
 }
 
 enum PackageType {
@@ -329,11 +350,11 @@ class CommandTemplate {
         return build(false, args);
     }
 
-    public String[] buildPrivileged(String... args) {
+    public String[] buildSU(String... args) {
         return build(true, args);
     }
 
-    private String[] build(boolean su, String... args) {
+    public String[] build(boolean su, String... args) {
         List<String> command = new ArrayList<>(adbTerms.length + components.length + 2);
         List<String> filledArgs = new ArrayList<>(components.length + 2);
 

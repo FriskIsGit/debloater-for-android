@@ -10,9 +10,10 @@ import java.util.*;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
-    private static final boolean SIMULATE_DEVICE = true;
+    private static final boolean SIMULATE_DEVICE = false;
+    private static final String STORAGE_EMULATED_0 = "/storage/emulated/0/"; // symbolic link to /data/media/0/
     private static final String DATA_USER_0 = "/data/user/0/";
-    private static final String OUTPUT_TAR = "output.tar";
+    private static final String EXPORT_TAR = "export.tar";
     private static final String IMPORT_TAR = "import.tar";
     private static final String DATA_EXPORT = "data-export";
     private static final String EXPORT = "export";
@@ -101,6 +102,7 @@ public class CLI {
 
             case "install": {
                 ensureArgument(args, 1, "No path provided.");
+                // detect extension .apkm and do install-multiple
                 String pkg = args[1];
                 String result = commands.install(pkg);
                 System.out.println(result);
@@ -211,11 +213,7 @@ public class CLI {
     }
 
     private void importDataByName(String pkgName, String importDir) {
-        String rootResult = commands.root();
-        if (!ADBCommands.hasRoot(rootResult)) {
-            errorExit("No adb root!");
-            return;
-        }
+        ensurePrivileged();
         File importFrom = new File(importDir);
         if (!importFrom.exists()) {
             errorExit("There's no directory of name " + importDir);
@@ -234,7 +232,7 @@ public class CLI {
             errorExit("The app is not installed, install it first.");
             return;
         }
-        String phoneTar = DATA_USER_0 + IMPORT_TAR;
+        String phoneTar = STORAGE_EMULATED_0 + IMPORT_TAR;
         String pushResult = commands.push(localTar.toString(), phoneTar);
         System.out.println(pushResult);
         commands.extractTar(phoneTar, DATA_USER_0);
@@ -249,27 +247,29 @@ public class CLI {
     private void importAppsData(String outputDir) {
         String packagesWithUID = commands.listPackagesWithUID(PackageType.ALL);
         List<App> apps = Packages.parseWithUID(packagesWithUID);
+        errorExit("Unimplemented");
     }
 
     private void exportDataByName(String pkgName, String outputDir) {
-        ensurePrivilegedAndEnsureDirectory(outputDir);
+        ensurePrivileged();
+        ensureDirectory(outputDir);
 
         String phoneDataDir = DATA_USER_0 + pkgName;
         if (!commands.exists(phoneDataDir)) {
             errorExit(phoneDataDir + " does not exist");
         }
 
-        String appDataTar = DATA_USER_0 + OUTPUT_TAR;
+        String appDataTar = STORAGE_EMULATED_0 + EXPORT_TAR;
         commands.tar(appDataTar, DATA_USER_0, pkgName);
 
         String pullOutput = commands.pull(appDataTar, outputDir + "/" + pkgName + ".tar");
         System.out.println(pullOutput);
-        String rmResult = commands.rm(appDataTar);
-        System.out.println(rmResult);
+        commands.rm(appDataTar);
     }
 
     private void exportAppsData(PackageType type, String outputDir) {
-        PrivilegeType privilege = ensurePrivilegedAndEnsureDirectory(outputDir);
+        ensurePrivileged();
+        ensureDirectory(outputDir);
         String packagesRes = commands.listPackagesBy(type);
         List<String> packages = Packages.parseToList(packagesRes);
         boolean tarredAny = false;
@@ -280,7 +280,7 @@ public class CLI {
                 continue;
             }
 
-            String appDataTar = DATA_USER_0 + OUTPUT_TAR;
+            String appDataTar = STORAGE_EMULATED_0 + EXPORT_TAR;
             commands.tar(appDataTar, DATA_USER_0, pkgName);
             tarredAny = true;
             String pullOutput = commands.pull(appDataTar, outputDir + "/" + pkgName + ".tar");
@@ -288,12 +288,15 @@ public class CLI {
         }
 
         if (tarredAny) {
-            String rmResult = commands.rm(DATA_USER_0 + OUTPUT_TAR);
+            String rmResult = commands.rm(STORAGE_EMULATED_0 + EXPORT_TAR);
             System.out.println(rmResult);
         }
     }
 
-    private PrivilegeType ensurePrivilegedAndEnsureDirectory(String outputDir) {
+    private void ensurePrivileged() {
+        if (commands.privilege != null) {
+            return;
+        }
         String rootResult = commands.root();
         PrivilegeType privilege = PrivilegeType.ADB_ROOT;
         if (!ADBCommands.hasRoot(rootResult)) {
@@ -303,11 +306,14 @@ public class CLI {
             }
             privilege = PrivilegeType.SU;
         }
-        File dir = new File(outputDir);
+        commands.privilege = privilege;
+    }
+
+    private void ensureDirectory(String dirPath) {
+        File dir = new File(dirPath);
         if (!dir.exists() && !dir.mkdirs()) {
             errorExit("Unable to create " + dir + " directory");
         }
-        return privilege;
     }
 
     private void ensureArgument(String[] args, int index, String errorMessage) {
@@ -652,9 +658,10 @@ public class CLI {
         System.out.println("  --no-cache, --skip-cache           [TODO] Skip cache during import or export");
         System.out.println("  --dir, -d <dir>                    Directory to export to or import from");
         System.out.println();
-        System.out.println("Bonus:");
+        System.out.println("Other commands:");
         System.out.println("  android                            Display Android version");
         System.out.println("  list [options]                     List packages");
+        System.out.println("  checkSU [options]                  Check super user access (su binary)");
     }
 
     public static void errorExit(String message) {
