@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
@@ -114,6 +115,7 @@ public class CLI {
                     }
                     String res = commands.installMultiple(apks.toArray(new String[0]));
                     System.out.println(res);
+                    System.out.println("Temporary files were put in " + TEMP_DIR);
                 } else {
                     String result = commands.install(appPath);
                     System.out.println(result);
@@ -376,9 +378,14 @@ public class CLI {
             errorExit("Create an export or put an .apk in " + EXPORT + "/com.app.name/");
             return;
         }
-        File[] apkDirs = export.listFiles(File::isDirectory);
+
+        Set<String> allPackages = Packages.parseToSet(commands.listPackagesBy(PackageType.ALL));
+        File[] apkDirs = name == null ?
+                export.listFiles(f -> f.isDirectory() && !allPackages.contains(f.getName())) :
+                export.listFiles(f -> f.isDirectory() && f.getName().equals(name));
+
         if (apkDirs == null || apkDirs.length == 0) {
-            errorExit("There's nothing to install back.");
+            errorExit("There's nothing to import or imported apps are already installed.");
             return;
         }
 
@@ -390,9 +397,6 @@ public class CLI {
         }
 
         for (File apkDir : apkDirs) {
-            if (name != null && !apkDir.getName().equals(name)) {
-                continue;
-            }
             System.out.println("Installing " + apkDir.getName());
             File[] apks = apkDir.listFiles(file -> file.isFile() && file.getName().endsWith(".apk"));
             assert apks != null;
