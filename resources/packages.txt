@@ -368,6 +368,7 @@ com.xiaomi.miplay_client
 com.xiaomi.mircs
 com.xiaomi.mi_connect_service
 com.xiaomi.payment
+com.xiaomi.mirecycle
 com.xiaomi.scanner
 com.xiaomi.simactivate.service
 com.xiaomi.xmsfkeeper
