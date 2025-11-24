@@ -24,7 +24,6 @@ public class CLI {
     private List<String> bloatedPackages;
     private final Scanner scanner = new Scanner(System.in);
     private Set<String> packages;
-    private boolean error_fallback;
 
 
     public static void start(ADBCommands commands, String[] args) {
@@ -396,24 +395,22 @@ public class CLI {
             }
         }
 
+        int i = 0;
         for (File apkDir : apkDirs) {
             System.out.println("Installing " + apkDir.getName());
             File[] apks = apkDir.listFiles(file -> file.isFile() && file.getName().endsWith(".apk"));
             assert apks != null;
+
+            String installOutput;
             if (apks.length == 1) {
-                String output = commands.install(apks[0].getPath());
-                System.out.println(output);
-                continue;
+                installOutput = commands.install(apks[0].getPath());
+            } else {
+                String[] apkPaths = Utilities.filesToPaths(apkDirs);
+                installOutput = commands.installMultiple(apkPaths);
             }
 
-            String[] apkPaths = new String[apks.length];
-            int index = 0;
-            for (File apk : apks) {
-                apkPaths[index] = apk.getPath();
-                index++;
-            }
-            String installOutput = commands.installMultiple(apkPaths);
             System.out.println(installOutput);
+            System.out.println("[" + (++i) + "/" + apkDirs.length + "]");
         }
     }
 
@@ -551,47 +548,23 @@ public class CLI {
 
     private void debloat(boolean full) {
         String output = commands.listPackagesBy(PackageType.ALL);
-        if (output.startsWith("package")) {
-            packages = Packages.parseToSet(output);
-            System.out.println("Found " + packages.size() + " packages installed on device.");
-            // retain these that are installed
-            bloatedPackages.retainAll(packages);
-        } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
-            error_fallback = true;
-            System.out.println("'pm list packages' command failed");
-        } else {
-            error_fallback = true;
-            System.err.println(output);
-        }
-        if (error_fallback) {
-            System.out.println("Do you want to try to blind-uninstall " + bloatedPackages.size() + " packages? (y/n)");
-        } else {
-            if (bloatedPackages.isEmpty()) {
-                System.out.println("No bloated packages found on the device. Exiting ..");
-                printRestoreCommandInfo();
-                return;
-            }
-            System.out.println(bloatedPackages);
-            System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages? (y/n)");
-        }
+        optimizePackagesAndPrompt(output, full);
 
-        List<String> uninstalled = new ArrayList<>();
         boolean usePrefix = false;
-
         String prefix = scanner.nextLine();
         if (!prefix.startsWith("y")) {
             if (!prefix.startsWith("n")) {
-                System.out.println("Exiting");
-                System.exit(0);
+                Utilities.okExit("Exiting");
             }
             System.out.println("Uninstall only those starting with:");
             prefix = scanner.nextLine();
             if (prefix.isEmpty()) {
-                System.out.println("Exiting");
-                System.exit(0);
+                Utilities.okExit("Exiting");
             }
             usePrefix = true;
         }
+
+        List<String> uninstalled = new ArrayList<>();
         long start = System.currentTimeMillis();
         int fail = 0;
 
@@ -618,7 +591,7 @@ public class CLI {
         System.out.println("Packages uninstalled: " + uninstalled.size());
         System.out.println("Failures: " + fail);
 
-        if (uninstalled.size() > 0) {
+        if (!uninstalled.isEmpty()) {
             long unixSec = System.currentTimeMillis() / 1000;
             Path debloatDump = Paths.get("debloat-" + LocalDate.now() + "-" + unixSec + ".txt");
             byte[] uninstalledAsBytes = String.join("\n", uninstalled).getBytes(StandardCharsets.UTF_8);
@@ -630,6 +603,33 @@ public class CLI {
             }
         }
         printRestoreCommandInfo();
+    }
+
+    private void optimizePackagesAndPrompt(String output, boolean full) {
+        boolean errorFallback = false;
+        if (output.startsWith("package")) {
+            packages = Packages.parseToSet(output);
+            System.out.println("Found " + packages.size() + " packages installed on device.");
+            // retain these that are installed
+            bloatedPackages.retainAll(packages);
+        } else if (output.startsWith("java.lang.UnsatisfiedLinkError")) {
+            errorFallback = true;
+            System.out.println("'pm list packages' command failed");
+        } else {
+            errorFallback = true;
+            System.err.println(output);
+        }
+        if (errorFallback) {
+            System.out.println("Do you want to try to blind-uninstall " + bloatedPackages.size() + " packages? (y/n)");
+        } else {
+            if (bloatedPackages.isEmpty()) {
+                System.out.println("No bloated packages found on the device. Exiting ..");
+                printRestoreCommandInfo();
+                System.exit(0);
+            }
+            System.out.println(bloatedPackages);
+            System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages? (y/n)");
+        }
     }
 
     private void printRestoreCommandInfo() {
@@ -650,7 +650,7 @@ public class CLI {
         System.out.println("  uninstall        <name>            Uninstalls package by name");
         System.out.println("  uninstall-full   <name>            Uninstalls package by name (fully)");
         System.out.println("  install-back     <name>            Installs an existing sys package by name");
-        System.out.println("  install          <path>            Installs app from local path");
+        System.out.println("  install          <path>            Installs app from local path (apk, apkm)");
         System.out.println("[ROOT]:");
         System.out.println("  uninstall-system <name>            [TODO] Uninstalls package by name (from system)");
         System.out.println("  install-system   <path> <app_dir>  [BOOTLOOP] Installs app as system app from local path");

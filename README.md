@@ -1,4 +1,4 @@
-## Package uninstaller for android
+## Desktop package manager for android
 Root privileges are not required for the uninstaller to work <br>
 Most packages in the list are from google, xiaomi and samsung.
 ### Requirements:

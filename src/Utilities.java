@@ -1,7 +1,4 @@
-import java.io.BufferedInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -96,6 +93,11 @@ public class Utilities {
         System.exit(1);
     }
 
+    public static void okExit(String message) {
+        System.out.println(message);
+        System.exit(0);
+    }
+
     public static String getExtension(String filename) {
         if (filename == null) {
             return "";
@@ -135,5 +137,15 @@ public class Utilities {
         System.arraycopy(terms, 0, joined, 0, terms.length);
         System.arraycopy(command, 0, joined, terms.length, command.length);
         return joined;
+    }
+
+    public static String[] filesToPaths(File[] files) {
+        String[] paths = new String[files.length];
+        int index = 0;
+        for (File apk : files) {
+            paths[index] = apk.getPath();
+            index++;
+        }
+        return paths;
     }
 }
