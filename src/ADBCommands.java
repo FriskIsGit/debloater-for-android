@@ -15,12 +15,13 @@ public class ADBCommands {
 
     PrivilegeType privilege = null;
     private final ProcessBuilder procBuilder = new ProcessBuilder();
-    private CommandTemplate UNINSTALL_KEEP, UNINSTALL_FULL, DISABLE,
+    private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
             TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU, MOVE;
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU, MOVE, GET_SELINUX_MODE,
+            SET_PROP;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -53,9 +54,25 @@ public class ADBCommands {
         }
     }
 
+    public void ensurePrivileged() {
+        if (privilege != null) {
+            return;
+        }
+        String rootResult = root();
+        PrivilegeType privilege = PrivilegeType.ADB_ROOT;
+        if (!ADBCommands.hasRoot(rootResult)) {
+            System.out.println("No adb root. Trying su");
+            if (!checkSU()) {
+                Utilities.errExit("No su access.");
+            }
+            privilege = PrivilegeType.SU;
+        }
+        this.privilege = privilege;
+    }
+
     private void setupCommands(String... adbTerms) {
-        UNINSTALL_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
-        UNINSTALL_FULL = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
+        PM_UNINSTALL_PER_USER = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
+        PM_UNINSTALL_PER_USER_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
         DISABLE = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
         INSTALL_BACK = new CommandTemplate(adbTerms, "shell", "pm", "install-existing", "");
         DEVICES = new CommandTemplate(adbTerms, "devices");
@@ -84,6 +101,8 @@ public class ADBCommands {
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
+        GET_SELINUX_MODE = new CommandTemplate(adbTerms, "shell", "getenforce");
+        SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -112,12 +131,12 @@ public class ADBCommands {
         }
     }
 
-    public String uninstallPackageFully(String pkgName) {
-        return executeCommandWithTimeout(UNINSTALL_FULL.build(pkgName), 3000);
+    public String uninstallPackagePerUser(String pkgName) {
+        return executeCommandWithTimeout(PM_UNINSTALL_PER_USER.build(pkgName), 3000);
     }
 
-    public String uninstallPackage(String pkgName) {
-        return executeCommandWithTimeout(UNINSTALL_KEEP.build(pkgName), 3000);
+    public String uninstallPackagePerUserKeepData(String pkgName) {
+        return executeCommandWithTimeout(PM_UNINSTALL_PER_USER_KEEP.build(pkgName), 3000);
     }
 
     public String disablePackageByName(String pkgName) {
@@ -171,6 +190,7 @@ public class ADBCommands {
 
     public String mkdir(String phonePath) {
         String[] command = MK_DIR.build(isSU(), phonePath);
+        System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
 
@@ -229,7 +249,8 @@ public class ADBCommands {
     }
 
     public String installAsSystemApp(String apkPath, String appDir) {
-        String partition = "/";
+        ensurePrivileged();
+        String partition = "/system";
         String rwResult = remountReadWrite(partition);
         if (rwResult.startsWith("adb: error:")) {
             return rwResult;
@@ -240,9 +261,11 @@ public class ADBCommands {
                 return rwResult + rootResult;
             }
         }
-        String phoneDir = "system/priv-app/" + appDir + "/";
+        String phoneDir = "/system/priv-app/" + appDir + "/";
         String mkDirResult = mkdir(phoneDir);
-        String pushResult = push(apkPath, phoneDir);
+
+        String phonePath = "/system/priv-app/" + appDir + "/" + appDir + ".apk";
+        String pushResult = push(apkPath, phonePath);
         if (pushResult.startsWith("adb: error:")) {
             return mkDirResult + pushResult;
         }
@@ -274,11 +297,13 @@ public class ADBCommands {
 
     public String remountReadOnly(String partition) {
         String[] command = MOUNT_READ_ONLY.build(isSU(), partition);
+        System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
 
     public String remountReadWrite(String partition) {
         String[] command = MOUNT_READ_WRITE.build(isSU(), partition);
+        System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
 
@@ -316,6 +341,17 @@ public class ADBCommands {
 
     public String moveSU(String phoneSrc, String phoneDestination) {
         String[] command = MOVE.buildSU(phoneSrc, phoneDestination);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String getSELinuxMode() {
+        String[] command = GET_SELINUX_MODE.build();
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String setProp(String key, String value) {
+        String[] command = SET_PROP.buildSU(key, value);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000);
     }

@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
@@ -79,17 +78,17 @@ public class CLI {
                 System.out.println(result);
             } break;
 
-            case "uninstall": {
+            case "uninstall-keep": {
                 ensureArgument(args, 1, "No package name provided.");
                 String pkg = args[1];
-                String result = commands.uninstallPackage(pkg);
+                String result = commands.uninstallPackagePerUserKeepData(pkg);
                 System.out.println(result);
             } break;
 
-            case "uninstall-full": {
+            case "uninstall": {
                 ensureArgument(args, 1, "No package name provided.");
                 String pkg = args[1];
-                String result = commands.uninstallPackageFully(pkg);
+                String result = commands.uninstallPackagePerUser(pkg);
                 System.out.println(result);
             } break;
 
@@ -123,8 +122,10 @@ public class CLI {
 
             case "install-system": {
                 ensureArgument(args, 1, "No path given. Provide the path to the apk");
-                errorExit("Unsafe command");
                 String apkPath = args[1];
+                if (!apkPath.endsWith(".apk")) {
+                    errorExit("The given app does not have .apk extension");
+                }
                 String appDirName = args.length > 2 ? args[2] : "";
                 String result = commands.installAsSystemApp(apkPath, appDirName);
                 System.out.println(result);
@@ -215,6 +216,25 @@ public class CLI {
                 System.out.println("SU access: " + res);
                 break;
 
+            case "SELinux":
+            case "selinux":
+                System.out.println("SE Linux mode: " + commands.getSELinuxMode());
+                break;
+
+            case "adbInstall": {
+                ensureArgument(args, 1, "Select 'on' or 'off'");
+                String value = args[1].equals("on") ? "1" : "0";
+                String propRes = commands.setProp("persist.security.adbinstall", value);
+                System.out.println(propRes);
+            } break;
+
+            case "adbInput": {
+                ensureArgument(args, 1, "Select 'on' or 'off'");
+                String value = args[1].equals("on") ? "1" : "0";
+                String propRes = commands.setProp("persist.security.adbinput", value);
+                System.out.println(propRes);
+            } break;
+
             default:
                 errorExit("Unrecognized action command: " + action);
                 break;
@@ -226,7 +246,7 @@ public class CLI {
     }
 
     private void importDataByName(String pkgName, String importDir) {
-        ensurePrivileged();
+        commands.ensurePrivileged();
         File importFrom = new File(importDir);
         if (!importFrom.exists()) {
             errorExit("There's no directory of name " + importDir);
@@ -264,7 +284,7 @@ public class CLI {
     }
 
     private void exportDataByName(String pkgName, String outputDir) {
-        ensurePrivileged();
+        commands.ensurePrivileged();
         ensureDirectory(outputDir);
 
         String phoneDataDir = DATA_USER_0 + pkgName;
@@ -281,7 +301,7 @@ public class CLI {
     }
 
     private void exportAppsData(PackageType type, String outputDir) {
-        ensurePrivileged();
+        commands.ensurePrivileged();
         ensureDirectory(outputDir);
         String packagesRes = commands.listPackagesBy(type);
         List<String> packages = Packages.parseToList(packagesRes);
@@ -304,22 +324,6 @@ public class CLI {
             String rmResult = commands.rm(STORAGE_EMULATED_0 + EXPORT_TAR);
             System.out.println(rmResult);
         }
-    }
-
-    private void ensurePrivileged() {
-        if (commands.privilege != null) {
-            return;
-        }
-        String rootResult = commands.root();
-        PrivilegeType privilege = PrivilegeType.ADB_ROOT;
-        if (!ADBCommands.hasRoot(rootResult)) {
-            System.out.println("No adb root. Trying su");
-            if (!commands.checkSU()) {
-                errorExit("No su access.");
-            }
-            privilege = PrivilegeType.SU;
-        }
-        commands.privilege = privilege;
     }
 
     private void ensureDirectory(String dirPath) {
@@ -573,7 +577,7 @@ public class CLI {
                 continue;
             }
 
-            output = full ? commands.uninstallPackageFully(currentPackage) : commands.uninstallPackage(currentPackage);
+            output = full ? commands.uninstallPackagePerUser(currentPackage) : commands.uninstallPackagePerUserKeepData(currentPackage);
             if (output.startsWith("Success")) {
                 System.out.println("Deleted: " + currentPackage);
                 uninstalled.add(currentPackage);
@@ -647,12 +651,11 @@ public class CLI {
         System.out.println();
         System.out.println("Manage apps:");
         System.out.println("  disable          <name>            Disables package by name");
-        System.out.println("  uninstall        <name>            Uninstalls package by name");
-        System.out.println("  uninstall-full   <name>            Uninstalls package by name (fully)");
+        System.out.println("  uninstall-keep   <name>            Uninstalls package by name per user (keeps data)");
+        System.out.println("  uninstall        <name>            Uninstalls package by name per user");
         System.out.println("  install-back     <name>            Installs an existing sys package by name");
         System.out.println("  install          <path>            Installs app from local path (apk, apkm)");
         System.out.println("[ROOT]:");
-        System.out.println("  uninstall-system <name>            [TODO] Uninstalls package by name (from system)");
         System.out.println("  install-system   <path> <app_dir>  [BOOTLOOP] Installs app as system app from local path");
         System.out.println();
         System.out.println("EXPORT:");
@@ -678,6 +681,8 @@ public class CLI {
         System.out.println("  android                            Display Android version");
         System.out.println("  list [options]                     List packages");
         System.out.println("  checkSU [options]                  Check super user access (su binary)");
+        System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");
+        System.out.println("  adbInput   [on/off]                [ROOT] Enable/Disable input simulation via ADB on Xiaomi");
     }
 
     public static void errorExit(String message) {

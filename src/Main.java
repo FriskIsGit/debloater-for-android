@@ -9,8 +9,7 @@ public class Main {
     private static boolean CACHE_ADB_PATH = true;
 
     public static void main(String[] args) {
-        // no arguments, ask for path
-        if (args.length == 0) {
+        if (args.length == 0 || args[0].equals("-h")) {
             CLI.displayHelp();
             return;
         }
