@@ -623,7 +623,8 @@ public class CLI {
             System.out.println("No cust directories found");
             return;
         }
-        String sizeRes, custDir;
+
+        String sizeRes, custDir, lsDir;
         if (custAppMissing) {
             custDir = CUSTPACK_APP;
             sizeRes = custpackAppSize;
@@ -631,13 +632,22 @@ public class CLI {
             custDir = CUST_APP;
             sizeRes = custAppSize;
         }
+        lsDir = custDir;
+        if (!custAppMissing) {
+            String custCustomizedDir = custDir + "/customized";
+            if(commands.exists(custCustomizedDir)) {
+                lsDir = custCustomizedDir;
+            }
+        }
         System.out.print(sizeRes);
-        String appList = commands.listFiles(custDir);
+        String appList = commands.listFiles(lsDir);
         System.out.println(appList);
         System.out.println(custDir + " will be removed");
         Utilities.askToProceedOrExit(scanner);
+        commands.remountReadWrite("/cust");
         String rmRes = commands.rmDirectory(custDir);
         System.out.println(rmRes);
+        commands.remountReadOnly("/cust");
     }
 
     private void optimizePackagesAndPrompt(String output, boolean full) {
