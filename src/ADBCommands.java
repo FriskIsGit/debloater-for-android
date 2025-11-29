@@ -17,11 +17,11 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
-            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, MK_DIR, RENAME, PM_PATH, DEVICES,
+            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, RENAME, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            SET_PROP;
+            SET_PROP, DIRECTORY_SIZE, LS_SIMPLE;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -61,7 +61,7 @@ public class ADBCommands {
         String rootResult = root();
         PrivilegeType privilege = PrivilegeType.ADB_ROOT;
         if (!ADBCommands.hasRoot(rootResult)) {
-            System.out.println("No adb root. Trying su");
+            System.out.println("No adb root. Trying su, answer the request on your phone or grant Shell SU rights");
             if (!checkSU()) {
                 Utilities.errExit("No su access.");
             }
@@ -83,6 +83,7 @@ public class ADBCommands {
         CHOWN_RECURSE = new CommandTemplate(adbTerms, "shell", "chown", "-R", "", "");
         RESTORECON = new CommandTemplate(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
         RM = new CommandTemplate(adbTerms, "shell", "rm", "-f", "");
+        RM_DIR = new CommandTemplate(adbTerms, "shell", "rm", "-rf", "");
         ADB_PUSH = new CommandTemplate(adbTerms, "push", "", "");
         MK_DIR = new CommandTemplate(adbTerms, "shell", "mkdir", "-p", "");
         RENAME = new CommandTemplate(adbTerms, "shell", "mv", "", "");
@@ -103,6 +104,8 @@ public class ADBCommands {
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
         GET_SELINUX_MODE = new CommandTemplate(adbTerms, "shell", "getenforce");
         SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
+        DIRECTORY_SIZE = new CommandTemplate(adbTerms, "shell", "du", "-sh", "");
+        LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -112,8 +115,8 @@ public class ADBCommands {
             Process proc = procBuilder.start();
             proc.waitFor(3, TimeUnit.SECONDS);
             return Utilities.read(proc.getInputStream(), maxLen, false);
-        } catch (IOException | InterruptedException exceptions) {
-            exceptions.printStackTrace();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
             return "";
         }
     }
@@ -125,8 +128,8 @@ public class ADBCommands {
             Process proc = procBuilder.start();
             proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             return Utilities.readFully(proc.getInputStream());
-        } catch (IOException | InterruptedException exceptions) {
-            exceptions.printStackTrace();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
             return "";
         }
     }
@@ -203,6 +206,12 @@ public class ADBCommands {
     public String rmSU(String phonePath) {
         String[] command = RM.buildSU(phonePath);
         return executeCommandWithTimeout(command, 4000);
+    }
+
+    public String rmDirectory(String phoneDir) {
+        String[] command = RM_DIR.build(isSU(), phoneDir);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
     }
 
     public boolean exists(String phonePath) {
@@ -353,6 +362,17 @@ public class ADBCommands {
     public String setProp(String key, String value) {
         String[] command = SET_PROP.buildSU(key, value);
         System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String getDirectorySize(String phoneDir) {
+        String[] command = DIRECTORY_SIZE.build(phoneDir);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String listFiles(String phoneDir) {
+        String[] command = LS_SIMPLE.build(isSU(), phoneDir);
         return executeCommandWithTimeout(command, 10_000);
     }
 }

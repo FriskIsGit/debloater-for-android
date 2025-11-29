@@ -69,6 +69,9 @@ public class CLI {
                 ensureArgument(args, 1, "Undoing debloat requires a list of packages");
                 debloatUndo(args[1]);
                 break;
+            case "debloat-cust":
+                debloatCust();
+                break;
 
             // Management
             case "disable": {
@@ -609,6 +612,34 @@ public class CLI {
         printRestoreCommandInfo();
     }
 
+    private void debloatCust() {
+        commands.ensurePrivileged();
+        final String CUST_APP = "/cust/app", CUSTPACK_APP = "/custpack/app";
+        String custAppSize = commands.getDirectorySize(CUST_APP);
+        String custpackAppSize = commands.getDirectorySize(CUSTPACK_APP);
+        boolean custAppMissing = custAppSize.startsWith("du: ");
+        boolean custpackAppMissing = custAppSize.startsWith("du: ");
+        if (custAppMissing && custpackAppMissing) {
+            System.out.println("No cust directories found");
+            return;
+        }
+        String sizeRes, custDir;
+        if (custAppMissing) {
+            custDir = CUSTPACK_APP;
+            sizeRes = custpackAppSize;
+        } else {
+            custDir = CUST_APP;
+            sizeRes = custAppSize;
+        }
+        System.out.print(sizeRes);
+        String appList = commands.listFiles(custDir);
+        System.out.println(appList);
+        System.out.println(custDir + " will be removed");
+        Utilities.askToProceedOrExit(scanner);
+        String rmRes = commands.rmDirectory(custDir);
+        System.out.println(rmRes);
+    }
+
     private void optimizePackagesAndPrompt(String output, boolean full) {
         boolean errorFallback = false;
         if (output.startsWith("package")) {
@@ -644,10 +675,11 @@ public class CLI {
     public static void displayHelp() {
         System.out.println("run.sh/run.bat <action>");
         System.out.println();
-        System.out.println("Debloat (packages.txt) (no root) (will prompt)");
+        System.out.println("Debloat (packages.txt) (will prompt)");
         System.out.println("  debloat              Uninstalls packages listed in packages.txt");
         System.out.println("  debloat-full         \"debloat\" but also deletes package data");
         System.out.println("  debloat-undo <file>  \"debloat\" but reversed");
+        System.out.println("  debloat-cust         [ROOT] remove cust bloatware");
         System.out.println();
         System.out.println("Manage apps:");
         System.out.println("  disable          <name>            Disables package by name");

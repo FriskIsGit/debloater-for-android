@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 public class Utilities {
@@ -147,5 +146,14 @@ public class Utilities {
             index++;
         }
         return paths;
+    }
+
+    public static void askToProceedOrExit(Scanner scanner) {
+        System.out.println("Proceed? (y/n)");
+        String input = scanner.nextLine();
+        if (input.startsWith("y")) {
+            return;
+        }
+        okExit("Aborting.");
     }
 }
