@@ -126,7 +126,7 @@ public class CLI {
             case "install-system": {
                 ensureArgument(args, 1, "No path given. Provide the path to the apk");
                 String apkPath = args[1];
-                if (!apkPath.endsWith(".apk")) {
+                if (!Utilities.getExtension(apkPath).equals("apk")) {
                     errorExit("The given app does not have .apk extension");
                 }
                 String appDirName = args.length > 2 ? args[2] : "";
@@ -236,6 +236,12 @@ public class CLI {
                 String value = args[1].equals("on") ? "1" : "0";
                 String propRes = commands.setProp("persist.security.adbinput", value);
                 System.out.println(propRes);
+            } break;
+
+            case "test": {
+                ensureArgument(args, 1, "Need args[1] to perform test");
+                String arg = Utilities.getExtension(args[1]);
+                System.out.println("EXT:" + arg);
             } break;
 
             default:
@@ -396,10 +402,8 @@ public class CLI {
         }
 
         if (name == null) {
-            System.out.println("Install possibly " + apkDirs.length + " APKs? (y/n)");
-            if (!scanner.nextLine().toLowerCase().startsWith("y")) {
-                return;
-            }
+            System.out.println("Install possibly " + apkDirs.length + " APKs?");
+            Utilities.askToProceedOrExit(scanner);
         }
 
         int i = 0;
@@ -478,10 +482,8 @@ public class CLI {
             return;
         }
         System.out.println(packages);
-        System.out.println("Backing up " + packages.size() + " packages, proceed? (y/n)");
-        if (!scanner.nextLine().toLowerCase().startsWith("y")) {
-            return;
-        }
+        System.out.println("Backing up " + packages.size() + " packages");
+        Utilities.askToProceedOrExit(scanner);
         int counter = 1;
         long st = System.currentTimeMillis();
         for (String pkg : packages) {
@@ -558,6 +560,7 @@ public class CLI {
         optimizePackagesAndPrompt(output, full);
 
         boolean usePrefix = false;
+        System.out.println("Proceed? (y/n)");
         String prefix = scanner.nextLine();
         if (!prefix.startsWith("y")) {
             if (!prefix.startsWith("n")) {
@@ -665,7 +668,7 @@ public class CLI {
             System.err.println(output);
         }
         if (errorFallback) {
-            System.out.println("Do you want to try to blind-uninstall " + bloatedPackages.size() + " packages? (y/n)");
+            System.out.println("Attempt to blind-uninstall " + bloatedPackages.size() + " packages?");
         } else {
             if (bloatedPackages.isEmpty()) {
                 System.out.println("No bloated packages found on the device. Exiting ..");
@@ -673,7 +676,7 @@ public class CLI {
                 System.exit(0);
             }
             System.out.println(bloatedPackages);
-            System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages? (y/n)");
+            System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages?");
         }
     }
 
@@ -700,29 +703,27 @@ public class CLI {
         System.out.println("[ROOT]:");
         System.out.println("  install-system   <path> <app_dir>  [BOOTLOOP] Installs app as system app from local path");
         System.out.println();
-        System.out.println("EXPORT:");
+        System.out.println("EXPORT (PHONE -> PC):");
         System.out.println("  export <name> [options]            Exports package by name");
         System.out.println("  export [options]                   Exports many packages");
         System.out.println("  export-data <name> [options]       [ROOT] Export app's data directory");
         System.out.println("  export-data [options]              [ROOT] Export many apps' data directories");
         System.out.println();
-        System.out.println("IMPORT:");
+        System.out.println("IMPORT (PC -> PHONE):");
         System.out.println("  import <name> [options]            Imports package by name from given directory");
         System.out.println("  import [options]                   Imports all packages from given directory");
         System.out.println("  import-data <name> [options]       [ROOT] Import app's data directory");
         System.out.println("  import-data [options]              [TODO] Import all apps' data");
         System.out.println();
         System.out.println("Options:");
-        System.out.println("  --user, -u                         User packages scope");
-        System.out.println("  --system, -s                       System packages scope");
-        System.out.println("  --all, -a                          All packages scope");
+        System.out.println("  --type, -pt, --package-type        Package scope: user, system, all");
         System.out.println("  --no-cache, --skip-cache           [TODO] Skip cache during import or export");
         System.out.println("  --dir, -d <dir>                    Directory to export to or import from");
         System.out.println();
         System.out.println("Other commands:");
         System.out.println("  android                            Display Android version");
         System.out.println("  list [options]                     List packages");
-        System.out.println("  checkSU [options]                  Check super user access (su binary)");
+        System.out.println("  checkSU                            Check super user access (su binary)");
         System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");
         System.out.println("  adbInput   [on/off]                [ROOT] Enable/Disable input simulation via ADB on Xiaomi");
     }

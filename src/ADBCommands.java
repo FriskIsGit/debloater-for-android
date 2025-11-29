@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class ADBCommands {
@@ -17,11 +18,11 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
-            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, RENAME, PM_PATH, DEVICES,
+            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, ANDROID_VERSION, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            SET_PROP, DIRECTORY_SIZE, LS_SIMPLE;
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -86,7 +87,6 @@ public class ADBCommands {
         RM_DIR = new CommandTemplate(adbTerms, "shell", "rm", "-rf", "");
         ADB_PUSH = new CommandTemplate(adbTerms, "push", "", "");
         MK_DIR = new CommandTemplate(adbTerms, "shell", "mkdir", "-p", "");
-        RENAME = new CommandTemplate(adbTerms, "shell", "mv", "", "");
         LIST_PACKAGES_BY_TYPE = new CommandTemplate(adbTerms, "shell", "pm", "list", "packages", "");
         LIST_PACKAGES_WITH_UID = new CommandTemplate(adbTerms, "shell", "pm", "list", "packages", "-U", "");
         INSTALL_CREATE = new CommandTemplate(adbTerms, "shell", "pm", "install-create", "-S", "");
@@ -98,11 +98,11 @@ public class ADBCommands {
         ADB_UNROOT = new CommandTemplate(adbTerms, "unroot");
         MOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         MOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
-        ANDROID_VERSION = new CommandTemplate(adbTerms, "shell", "getprop", "ro.build.version.release");
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
         GET_SELINUX_MODE = new CommandTemplate(adbTerms, "shell", "getenforce");
+        GET_PROP = new CommandTemplate(adbTerms, "shell", "getprop", "");
         SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
         DIRECTORY_SIZE = new CommandTemplate(adbTerms, "shell", "du", "-sh", "");
         LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
@@ -219,12 +219,6 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 3000).startsWith("Yes");
     }
 
-    public String rename(String phonePath) {
-        /*RENAME[RENAME.length - 1] = phonePath;
-        return executeCommandWithTimeout(RENAME, 3000);*/
-        return "Unimplemented";
-    }
-
     public String install(String path) {
         return executeCommandWithTimeout(ADB_INSTALL.build(path), 3000);
     }
@@ -328,7 +322,7 @@ public class ADBCommands {
     }
 
     public String getAndroidVersion() {
-        return executeCommandWithTimeout(ANDROID_VERSION.build(), 50);
+        return executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
     }
 
     public String listPackagesBy(PackageType type) {
@@ -378,7 +372,15 @@ public class ADBCommands {
 }
 
 enum PackageType {
-    SYSTEM, USER, ALL
+    SYSTEM, USER, ALL;
+    public static PackageType from(String name) {
+        try {
+            String pkgType = name.toUpperCase(Locale.ROOT);
+            return valueOf(pkgType);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 }
 
 enum PrivilegeType {

@@ -1,3 +1,5 @@
+import java.util.Locale;
+
 public class Options {
     public PackageType packageType = PackageType.ALL;
     public String dir;
@@ -7,30 +9,27 @@ public class Options {
         Options opts = new Options();
         for (int i = fromIndex; i < options.length; i++) {
             switch (options[i]) {
-                case "--user":
-                case "-u": {
-                    opts.packageType = PackageType.USER;
-                } break;
-
-                case "--system":
-                case "-s": {
-                    opts.packageType = PackageType.SYSTEM;
-                } break;
-
-                case "--all":
-                case "-a": {
-                    opts.packageType = PackageType.ALL;
+                case "--package-type":
+                case "--type":
+                case "-pt": {
+                    if (++i >= options.length) {
+                        Utilities.errExit("No package type passed out of: user, system, all");
+                    }
+                    opts.packageType = PackageType.from(options[i]);
+                    if (opts.packageType == null) {
+                        Utilities.errExit("Invalid package type '" + options[i] + "'. None of: user, system, all");
+                    }
                 } break;
 
                 case "--no-cache":
                 case "--skip-cache": {
                     opts.skipCache = true;
+                    System.err.println("Unimplemented");
                 } break;
 
                 case "--dir":
                 case "-d": {
-                    i++;
-                    if (i >= options.length) {
+                    if (++i >= options.length) {
                         Utilities.errExit("No path passed for --dir <path>");
                     }
                     opts.dir = options[i];

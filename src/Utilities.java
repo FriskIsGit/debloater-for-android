@@ -98,14 +98,18 @@ public class Utilities {
     }
 
     public static String getExtension(String filename) {
-        if (filename == null) {
+        if (filename == null || filename.length() < 2) {
             return "";
         }
         int lastDot = filename.lastIndexOf('.');
-        if (lastDot == -1) {
+        if (lastDot < 1) {
             return "";
         }
-        return filename.substring(lastDot + 1);
+        int endIndex = filename.length();
+        if (filename.endsWith("/")) {
+            endIndex = filename.length() - 1;
+        }
+        return filename.substring(lastDot + 1, endIndex);
     }
 
     public static List<String> unpackApkm(String apkmPath, String dest) throws IOException {
