@@ -33,9 +33,9 @@ $ git clone https://github.com/FriskIsGit/debloater-for-android
 # Navigate to project's root
 $ cd debloater-for-android
 
-# On Linux run
+# On Linux run to compile & run
 $ ./rerun.sh
-# On Windows run
+# On Windows run to compile & run
 $ rerun.bat
 ```
 
@@ -49,18 +49,10 @@ debloat-full         "debloat" but also deletes package data
 debloat-undo <file>  "debloat" but reversed
 ```
 
-## ADB compatibility
-Refer to release notes: https://developer.android.com/tools/releases/platform-tools
-<br>You can download specific versions by modifying this url:
-https://dl.google.com/android/repository/platform-tools_r34.0.4-windows.zip
-
-version 34.0.5 (October 2023) and above come bundled with new DbC interface for ChromeOS
-which may cause adb to crash on older systems
-
 ## Exports/Imports
 Exporting all user apps to directory `apps`
 ```shell
-./run export --user --dir apps 
+./run export --type user --dir apps 
 ```
 importing from directory
 ```shell
@@ -69,7 +61,7 @@ importing from directory
 
 <br>
 
-It's possible to export app data
+It's possible to export app data (both ADB root and SU are supported)
 ```shell
 ./run export-data com.package.name
 ```
@@ -80,3 +72,11 @@ and import with
 but the use is limited if the app uses (hardware-backed) Android Keystore.
 Simply clearing app's data from settings causes the OS to reset the data for this app in the keystore as well,
 making the backup useless.
+
+## ADB compatibility
+Refer to release notes: https://developer.android.com/tools/releases/platform-tools
+<br>You can download specific versions of platforms tools by modifying this url:
+https://dl.google.com/android/repository/platform-tools_r34.0.4-windows.zip
+
+version 34.0.5 (October 2023) and above come bundled with new DbC interface for ChromeOS
+which may cause adb to crash on older systems
