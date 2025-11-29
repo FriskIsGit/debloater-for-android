@@ -188,7 +188,8 @@ public class ADBCommands {
     }
 
     public String push(String pcPath, String phonePath) {
-        return executeCommandWithTimeout(ADB_PUSH.build(pcPath, phonePath), 3000);
+        String[] command = ADB_PUSH.build(pcPath, phonePath);
+        return executeCommandWithTimeout(command, 3000);
     }
 
     public String mkdir(String phonePath) {
@@ -222,6 +223,10 @@ public class ADBCommands {
     public String install(String path) {
         return executeCommandWithTimeout(ADB_INSTALL.build(path), 3000);
     }
+
+    public String installReplace(String path) {
+        return executeCommandWithTimeout(ADB_INSTALL.build("-r", path), 3000);
+    }
     public String createInstall(int totalSizeBytes) {
         String[] command = INSTALL_CREATE.build(String.valueOf(totalSizeBytes));
         return executeCommandWithTimeout(command, 3000);
@@ -249,31 +254,6 @@ public class ADBCommands {
     public String installExistingPackage(String pkgName, int maxOutputLen) {
         String[] command = INSTALL_BACK.build(pkgName);
         return executeCommandTrim(command, maxOutputLen);
-    }
-
-    public String installAsSystemApp(String apkPath, String appDir) {
-        ensurePrivileged();
-        String partition = "/system";
-        String rwResult = remountReadWrite(partition);
-        if (rwResult.startsWith("adb: error:")) {
-            return rwResult;
-        }
-        if (rwResult.startsWith("mount:")) {
-            String rootResult = root();
-            if (!hasRoot(rootResult)) {
-                return rwResult + rootResult;
-            }
-        }
-        String phoneDir = "/system/priv-app/" + appDir + "/";
-        String mkDirResult = mkdir(phoneDir);
-
-        String phonePath = "/system/priv-app/" + appDir + "/" + appDir + ".apk";
-        String pushResult = push(apkPath, phonePath);
-        if (pushResult.startsWith("adb: error:")) {
-            return mkDirResult + pushResult;
-        }
-        String roResult = remountReadOnly(partition);
-        return rwResult + pushResult + roResult;
     }
 
     public static boolean hasRoot(String output) {
@@ -342,8 +322,8 @@ public class ADBCommands {
         throw new IllegalStateException("Unreachable");
     }
 
-    public String moveSU(String phoneSrc, String phoneDestination) {
-        String[] command = MOVE.buildSU(phoneSrc, phoneDestination);
+    public String move(String phoneSrc, String phoneDestination) {
+        String[] command = MOVE.build(isSU(), phoneSrc, phoneDestination);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000);
     }

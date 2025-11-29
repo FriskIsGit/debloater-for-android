@@ -130,7 +130,7 @@ public class CLI {
                     errorExit("The given app does not have .apk extension");
                 }
                 String appDirName = args.length > 2 ? args[2] : "";
-                String result = commands.installAsSystemApp(apkPath, appDirName);
+                String result = installAsSystemApp(apkPath, appDirName);
                 System.out.println(result);
             } break;
 
@@ -678,6 +678,36 @@ public class CLI {
             System.out.println(bloatedPackages);
             System.out.println("Uninstall " + (full ? "fully " : "") + bloatedPackages.size() + " packages?");
         }
+    }
+
+    public String installAsSystemApp(String apkPath, String appDir) {
+        commands.ensurePrivileged();
+        String partition = "/";
+        String rwResult = commands.remountReadWrite(partition);
+        if (rwResult.startsWith("adb: error:") || rwResult.startsWith("mount:")) {
+            return rwResult;
+        }
+        String phoneDir = "/system/priv-app/" + appDir + "/";
+        String mkDirResult = commands.mkdir(phoneDir);
+        if (mkDirResult.startsWith("mkdir:")) {
+            return mkDirResult;
+        }
+
+        String apkName = appDir + ".apk";
+        String phoneTempPath = STORAGE_EMULATED_0 + apkName;
+        String phoneDestPath = "/system/priv-app/" + appDir + "/" + apkName;
+        String pushResult = commands.push(apkPath, phoneTempPath);
+        if (pushResult.startsWith("adb: error:")) {
+            return pushResult;
+        }
+
+        String moveResult = commands.move(phoneTempPath, phoneDestPath);
+        if (moveResult.startsWith("mv:")) {
+            return pushResult;
+        }
+
+        String roResult = commands.remountReadOnly(partition);
+        return rwResult + pushResult + roResult;
     }
 
     private void printRestoreCommandInfo() {
