@@ -92,7 +92,7 @@ public class ADBCommands {
         INSTALL_CREATE = new CommandTemplate(adbTerms, "shell", "pm", "install-create", "-S", "");
         INSTALL_WRITE = new CommandTemplate(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
         INSTALL_COMMIT = new CommandTemplate(adbTerms, "shell", "pm", "install-commit", "");
-        ADB_INSTALL = new CommandTemplate(adbTerms, "install", "");
+        ADB_INSTALL = new CommandTemplate(adbTerms, "install", "--bypass-low-target-sdk-block", "");
         ADB_INSTALL_MULTIPLE = new CommandTemplate(adbTerms, "install-multiple");
         ADB_ROOT = new CommandTemplate(adbTerms, "root");
         ADB_UNROOT = new CommandTemplate(adbTerms, "unroot");
