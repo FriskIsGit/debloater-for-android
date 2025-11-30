@@ -22,7 +22,7 @@ public class ADBCommands {
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE;
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -106,6 +106,7 @@ public class ADBCommands {
         SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
         DIRECTORY_SIZE = new CommandTemplate(adbTerms, "shell", "du", "-sh", "");
         LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
+        DISK_FREE = new CommandTemplate(adbTerms, "shell", "df", "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -348,6 +349,35 @@ public class ADBCommands {
     public String listFiles(String phoneDir) {
         String[] command = LS_SIMPLE.build(isSU(), phoneDir);
         return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public long getAvailableSpace(String phoneDir) {
+        String[] command = DISK_FREE.build(phoneDir);
+        String dfResult = executeCommandWithTimeout(command, 10_000);
+        if (dfResult.startsWith("df:") || dfResult.startsWith("/system/bin/sh:")) {
+            return -1;
+        }
+        List<String> lines = splitOutputLines(dfResult);
+        String headerLine = lines.get(0);
+        String valuesLine = lines.get(1);
+        int availableIndex = headerLine.indexOf("Available");
+        String value = valuesLine.substring(availableIndex, availableIndex + "Available".length());
+        return Long.parseLong(value.trim());
+    }
+
+    private static List<String> splitOutputLines(String output) {
+        List<String> lines = new ArrayList<>();
+        int st = 0;
+        while (true) {
+            int separator = output.indexOf("\r\n", st);
+            if (separator == -1) {
+                break;
+            }
+            String line = output.substring(st, separator);
+            lines.add(line);
+            st = separator + 2;
+        }
+        return lines;
     }
 }
 

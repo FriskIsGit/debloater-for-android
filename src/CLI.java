@@ -129,7 +129,8 @@ public class CLI {
                 if (!Utilities.getExtension(apkPath).equals("apk")) {
                     errorExit("The given app does not have .apk extension");
                 }
-                String appDirName = args.length > 2 ? args[2] : "";
+                ensureArgument(args, 2, "No app directory name given where the apk will be put");
+                String appDirName = args[2];
                 String result = installAsSystemApp(apkPath, appDirName);
                 System.out.println(result);
             } break;
@@ -239,9 +240,6 @@ public class CLI {
             } break;
 
             case "test": {
-                ensureArgument(args, 1, "Need args[1] to perform test");
-                String arg = Utilities.getExtension(args[1]);
-                System.out.println("EXT:" + arg);
             } break;
 
             default:
@@ -683,6 +681,21 @@ public class CLI {
     public String installAsSystemApp(String apkPath, String appDir) {
         commands.ensurePrivileged();
         String partition = "/";
+        long freeSpace = commands.getAvailableSpace(partition);
+        if (freeSpace != -1) {
+            Path path = Paths.get(apkPath);
+            long apkSize = -1;
+            try {
+                apkSize = Files.size(path);
+            } catch (IOException e) {
+                errorExit(e.toString());
+            }
+            if (apkSize > freeSpace) {
+                errorExit("There's not enough space on " + partition + " to install this apk.\n" +
+                        "Available space:  " + Utilities.formatKBtoMB(freeSpace) + "\n" +
+                        "Application size: " + Utilities.formatBtoMB(apkSize));
+            }
+        }
         String rwResult = commands.remountReadWrite(partition);
         if (rwResult.startsWith("adb: error:") || rwResult.startsWith("mount:")) {
             return rwResult;
