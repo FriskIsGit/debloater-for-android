@@ -12,6 +12,7 @@ public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
     private static final boolean SIMULATE_DEVICE = false;
     private static final String STORAGE_EMULATED_0 = "/storage/emulated/0/"; // symbolic link to /data/media/0/
+    private static final String SYSTEM_PRIV_APP = "/system/priv-app/"; // possible to debloat these apps
     private static final String DATA_USER_0 = "/data/user/0/";
     private static final String EXPORT_TAR = "export.tar";
     private static final String IMPORT_TAR = "import.tar";
@@ -681,7 +682,7 @@ public class CLI {
     public String installAsSystemApp(String apkPath, String appDir) {
         commands.ensurePrivileged();
         String partition = "/";
-        long freeSpace = commands.getAvailableSpace(partition);
+        long freeSpace = commands.getAvailableSpaceInBytes(partition);
         if (freeSpace != -1) {
             Path path = Paths.get(apkPath);
             long apkSize = -1;
@@ -692,7 +693,7 @@ public class CLI {
             }
             if (apkSize > freeSpace) {
                 errorExit("There's not enough space on " + partition + " to install this apk.\n" +
-                        "Available space:  " + Utilities.formatKBtoMB(freeSpace) + "\n" +
+                        "Available space:  " + Utilities.formatBtoMB(freeSpace) + "\n" +
                         "Application size: " + Utilities.formatBtoMB(apkSize));
             }
         }
@@ -700,7 +701,7 @@ public class CLI {
         if (rwResult.startsWith("adb: error:") || rwResult.startsWith("mount:")) {
             return rwResult;
         }
-        String phoneDir = "/system/priv-app/" + appDir + "/";
+        String phoneDir = SYSTEM_PRIV_APP + appDir + "/";
         String mkDirResult = commands.mkdir(phoneDir);
         if (mkDirResult.startsWith("mkdir:")) {
             return mkDirResult;
@@ -708,12 +709,12 @@ public class CLI {
 
         String apkName = appDir + ".apk";
         String phoneTempPath = STORAGE_EMULATED_0 + apkName;
-        String phoneDestPath = "/system/priv-app/" + appDir + "/" + apkName;
         String pushResult = commands.push(apkPath, phoneTempPath);
         if (pushResult.startsWith("adb: error:")) {
             return pushResult;
         }
 
+        String phoneDestPath = phoneDir + apkName;
         String moveResult = commands.move(phoneTempPath, phoneDestPath);
         if (moveResult.startsWith("mv:")) {
             return pushResult;

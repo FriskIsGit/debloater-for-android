@@ -165,10 +165,6 @@ public class Utilities {
         return String.format("%.1f", value);
     }
 
-    public static String formatKBtoMB(long kb) {
-        return formatFloat((double)kb/(double)(1024)) + " MB";
-    }
-
     public static String formatBtoMB(long bytes) {
         return formatFloat((double)bytes/(double)(1024*1024)) + " MB";
     }

@@ -351,7 +351,7 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
-    public long getAvailableSpace(String phoneDir) {
+    public long getAvailableSpaceInBytes(String phoneDir) {
         String[] command = DISK_FREE.build(phoneDir);
         String dfResult = executeCommandWithTimeout(command, 10_000);
         if (dfResult.startsWith("df:") || dfResult.startsWith("/system/bin/sh:")) {
@@ -362,7 +362,8 @@ public class ADBCommands {
         String valuesLine = lines.get(1);
         int availableIndex = headerLine.indexOf("Available");
         String value = valuesLine.substring(availableIndex, availableIndex + "Available".length());
-        return Long.parseLong(value.trim());
+        // df returns values in KB
+        return 1024 * Long.parseLong(value.trim());
     }
 
     private static List<String> splitOutputLines(String output) {
