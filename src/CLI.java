@@ -282,7 +282,7 @@ public class CLI {
         List<App> apps = Packages.parseWithUID(packagesWithUID);
         App targetApp = apps.stream().filter(app -> app.name.equals(pkgName)).findFirst().get();
         System.out.println("Target app: " + targetApp);
-        commands.changeOwnership(targetApp.uid, targetApp.uid, DATA_USER_0 + pkgName);
+        commands.changeOwnership(targetApp.uid, targetApp.uid, DATA_USER_0 + pkgName, true);
     }
 
     private void importAppsData(String outputDir) {
@@ -718,6 +718,15 @@ public class CLI {
         String moveResult = commands.move(phoneTempPath, phoneDestPath);
         if (moveResult.startsWith("mv:")) {
             return pushResult;
+        }
+
+        String chmodRes = commands.chmod("644", phoneDestPath);
+        if (chmodRes.startsWith("chmod:")) {
+            return chmodRes;
+        }
+        String chownRes = commands.changeOwnership("root", "root", phoneDestPath);
+        if (chownRes.startsWith("chown:")) {
+            return chownRes;
         }
 
         String roResult = commands.remountReadOnly(partition);

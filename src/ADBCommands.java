@@ -18,7 +18,7 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
-            TAR, CHOWN_RECURSE, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
+            TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
@@ -81,7 +81,8 @@ public class ADBCommands {
         ADB_PULL = new CommandTemplate(adbTerms, "pull", "", "");
         TAR = new CommandTemplate(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
         EXTRACT_TAR = new CommandTemplate(adbTerms, "shell", "tar", "xfp", "", "-C", "");
-        CHOWN_RECURSE = new CommandTemplate(adbTerms, "shell", "chown", "-R", "", "");
+        CHOWN = new CommandTemplate(adbTerms, "shell", "chown", "", "");
+        CHMOD = new CommandTemplate(adbTerms, "shell", "chmod", "", "");
         RESTORECON = new CommandTemplate(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
         RM = new CommandTemplate(adbTerms, "shell", "rm", "-f", "");
         RM_DIR = new CommandTemplate(adbTerms, "shell", "rm", "-rf", "");
@@ -156,7 +157,19 @@ public class ADBCommands {
     }
 
     public String changeOwnership(String owner, String group, String phonePath) {
-        String[] command = CHOWN_RECURSE.build(isSU(), owner + ":" + group, phonePath);
+        return changeOwnership(owner, group, phonePath, false);
+    }
+
+    public String changeOwnership(String owner, String group, String phonePath, boolean recurse) {
+        String[] command = recurse ?
+                CHOWN.build(isSU(), "-R", owner + ":" + group, phonePath) :
+                CHOWN.build(isSU(), owner + ":" + group, phonePath);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
+    }
+
+    public String chmod(String permissions, String phonePath) {
+        String[] command = CHMOD.build(isSU(), permissions, phonePath);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
