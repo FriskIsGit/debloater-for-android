@@ -22,7 +22,7 @@ public class ADBCommands {
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE;
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -108,6 +108,7 @@ public class ADBCommands {
         DIRECTORY_SIZE = new CommandTemplate(adbTerms, "shell", "du", "-sh", "");
         LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
         DISK_FREE = new CommandTemplate(adbTerms, "shell", "df", "");
+        GET_BUILD = new CommandTemplate(adbTerms, "shell", "cat /system/build.prop | grep build.type");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -319,6 +320,16 @@ public class ADBCommands {
         return executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
     }
 
+    public String getBuildType() {
+        String[] command = GET_BUILD.build(isSU());
+        String buildOutput = executeCommandWithTimeout(command, 10_000);
+        List<String> lines = splitOutputLines(buildOutput);
+        if (lines.size() == 0) {
+            return "";
+        }
+        return getPairValue(lines.get(0));
+    }
+
     public String listPackagesBy(PackageType type) {
         String modifier = getPackageModifier(type);
         String[] command = LIST_PACKAGES_BY_TYPE.build(modifier);
@@ -392,6 +403,14 @@ public class ADBCommands {
             st = separator + 2;
         }
         return lines;
+    }
+
+    private static String getPairValue(String pair) {
+        int eq = pair.indexOf('=');
+        if (eq == -1 || eq == pair.length() - 1) {
+            return "";
+        }
+        return pair.substring(eq + 1);
     }
 }
 

@@ -226,6 +226,11 @@ public class CLI {
                 System.out.println("SE Linux mode: " + commands.getSELinuxMode());
                 break;
 
+            case "get-build":
+                commands.ensurePrivileged();
+                System.out.println("Build type: " + commands.getBuildType());
+                break;
+
             case "adbInstall": {
                 ensureArgument(args, 1, "Select 'on' or 'off'");
                 String value = args[1].equals("on") ? "1" : "0";
@@ -754,7 +759,7 @@ public class CLI {
         System.out.println("  install-back     <name>            Installs an existing sys package by name");
         System.out.println("  install          <path>            Installs app from local path (apk, apkm)");
         System.out.println("[ROOT]:");
-        System.out.println("  install-system   <path> <app_dir>  [BOOTLOOP] Installs app as system app from local path");
+        System.out.println("  install-system   <path> <app_dir>  Installs app as system app from local path");
         System.out.println();
         System.out.println("EXPORT (PHONE -> PC):");
         System.out.println("  export <name> [options]            Exports package by name");
