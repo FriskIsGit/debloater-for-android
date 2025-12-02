@@ -200,13 +200,39 @@ public class CLI {
                 importAppsData(dataDir);
             } break;
 
+            // Limited by pm checks - is not a changeable permission type
+            case "grant": {
+                Options opts = Options.parseOptions(args, 3);
+                ensureArgument(args, 2, "Usage: grant <permission> <package> [options]");
+                String permName = args[1];
+                String packageName = args[2];
+                Permission perm = Permission.from(permName);
+                if (perm == null) {
+                    System.out.println("Warning: Unrecognized permission name: " + permName);
+                }
+                String res = commands.pmGrantPermission(perm == null ? permName : perm.name, packageName, opts.force);
+                System.out.println(res);
+            } break;
+
+            // Limited by pm checks - is not a changeable permission type
+            case "revoke": {
+                Options opts = Options.parseOptions(args, 3);
+                ensureArgument(args, 2, "Usage: revoke <permission> <package> [options]");
+                String permName = args[1];
+                String packageName = args[2];
+                Permission perm = Permission.from(permName);
+                if (perm == null) {
+                    System.out.println("Warning: Unrecognized permission name: " + permName);
+                }
+                String res = commands.pmRevokePermission(perm == null ? permName : perm.name, packageName, opts.force);
+                System.out.println(res);
+            } break;
+
             case "list": {
                 Options opts = Options.parseOptions(args, 1);
                 String res = commands.listPackagesWithUID(opts.packageType);
                 List<App> apps = Packages.parseWithUID(res);
-                for (App app : apps) {
-                    System.out.println(app);
-                }
+                apps.forEach(System.out::println);
                 System.out.println("Count: " + apps.size());
             } break;
 
@@ -768,6 +794,8 @@ public class CLI {
         System.out.println("  uninstall        <name>            Uninstalls package by name per user");
         System.out.println("  install-back     <name>            Installs an existing sys package by name");
         System.out.println("  install          <path>            Installs app from local path (apk, apkm)");
+        System.out.println("  revoke    <perm> <name> [options]  Revokes given permission from app (aliases supported)");
+        System.out.println("  grant     <perm> <name> [options]  Grants given permission to app (aliases supported)");
         System.out.println("[ROOT]:");
         System.out.println("  install-system   <path> <app_dir>  Installs app as system app from local path");
         System.out.println();
@@ -786,6 +814,7 @@ public class CLI {
         System.out.println("Options:");
         System.out.println("  --type, -pt, --package-type        Package scope: user, system, all");
         System.out.println("  --no-cache, --skip-cache           [TODO] Skip cache during import or export");
+        System.out.println("  --force, -f                        Force permission grant or revoke");
         System.out.println("  --dir, -d <dir>                    Directory to export to or import from");
         System.out.println();
         System.out.println("Other commands:");

@@ -1,8 +1,5 @@
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -18,7 +15,7 @@ public class ADBCommands {
     PrivilegeType privilege = null;
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
-            LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID,
+            LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID, PM_CHANGE_PERM,
             TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
@@ -112,6 +109,7 @@ public class ADBCommands {
         GET_BUILD = new CommandTemplate(adbTerms, "shell", "cat /system/build.prop | grep build.type");
         DMCTL = new CommandTemplate(adbTerms, "shell", "dmctl");
         TUNE2FS = new CommandTemplate(adbTerms, "shell", "tune2fs", "-l", "");
+        PM_CHANGE_PERM = new CommandTemplate(adbTerms, "shell", "pm", "", "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -426,6 +424,23 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
+    public String pmGrantPermission(String permission, String packageName, boolean force) {
+        return pmChangePermission(true, force, packageName, permission);
+    }
+
+    public String pmRevokePermission(String permission, String packageName, boolean force) {
+        return pmChangePermission(false, force, packageName, permission);
+    }
+
+    public String pmChangePermission(boolean grant, boolean force, String packageName, String permission) {
+        String action = grant ? "grant" : "revoke";
+        String[] command = force ?
+                PM_CHANGE_PERM.buildSUWithSUArgs(Arrays.asList("-l", "1000"), action, packageName, permission) :
+                PM_CHANGE_PERM.build(action, packageName, permission);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
     private static List<String> splitOutputLines(String output) {
         List<String> lines = new ArrayList<>();
         int st = 0;
@@ -467,7 +482,6 @@ enum PrivilegeType {
 }
 
 class CommandTemplate {
-    private static final List<String> SU_TERMS = Arrays.asList("su", "-c");
     private final String[] adbTerms;
     private final String[] components; // Empty components are placeholders for arguments
 
@@ -485,6 +499,14 @@ class CommandTemplate {
     }
 
     public String[] build(boolean su, String... args) {
+        return build(su, Collections.emptyList(), args);
+    }
+
+    public String[] buildSUWithSUArgs(List<String> suArgs, String... args) {
+        return build(true, suArgs, args);
+    }
+
+    public String[] build(boolean su, List<String> suArgs, String... args) {
         List<String> command = new ArrayList<>(adbTerms.length + components.length + 2);
         List<String> filledArgs = new ArrayList<>();
 
@@ -494,7 +516,9 @@ class CommandTemplate {
         int startIndex = 0;
         if (wrapInner) {
             command.add("shell");
-            command.addAll(SU_TERMS);
+            command.add("su");
+            command.addAll(suArgs);
+            command.add("-c");
             startIndex = 1;
         }
 
@@ -527,3 +551,5 @@ class CommandTemplate {
 class DmctlTable {
 
 }
+
+

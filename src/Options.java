@@ -3,6 +3,7 @@ public class Options {
     public PackageType packageType = PackageType.ALL;
     public String dir;
     public boolean skipCache = false;
+    public boolean force = false;
 
     public static Options parseOptions(String[] options, int fromIndex) {
         Options opts = new Options();
@@ -24,6 +25,11 @@ public class Options {
                 case "--skip-cache": {
                     opts.skipCache = true;
                     System.err.println("Unimplemented");
+                } break;
+
+                case "--force":
+                case "-f": {
+                    opts.force = true;
                 } break;
 
                 case "--dir":
