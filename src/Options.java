@@ -1,4 +1,3 @@
-import java.util.Locale;
 
 public class Options {
     public PackageType packageType = PackageType.ALL;

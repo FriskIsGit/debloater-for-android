@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ADBCommands {
     //manually: adb shell pm uninstall -k --user 0 com.x
@@ -22,7 +23,7 @@ public class ADBCommands {
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD;
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -109,6 +110,8 @@ public class ADBCommands {
         LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
         DISK_FREE = new CommandTemplate(adbTerms, "shell", "df", "");
         GET_BUILD = new CommandTemplate(adbTerms, "shell", "cat /system/build.prop | grep build.type");
+        DMCTL = new CommandTemplate(adbTerms, "shell", "dmctl");
+        TUNE2FS = new CommandTemplate(adbTerms, "shell", "tune2fs", "-l", "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -390,6 +393,39 @@ public class ADBCommands {
         return 1024 * Long.parseLong(value.trim());
     }
 
+    public List<String> dmctlListDevices() {
+        String[] command = DMCTL.build(isSU(), "list", "devices");
+        String devicesResult = executeCommandWithTimeout(command, 10_000);
+        List<String> devices = splitOutputLines(devicesResult);
+        return devices.stream()
+                .skip(1)
+                .filter(dev -> !dev.startsWith("com.android"))
+                .map(dev -> dev.substring(0, dev.indexOf(' ')))
+                .collect(Collectors.toList());
+    }
+
+    public DmctlTable dmctlTable(String device) {
+        String[] command = DMCTL.build(isSU(), "table", device);
+        String res = executeCommandWithTimeout(command, 10_000);
+        return new DmctlTable();
+    }
+
+    public String dmctlGetPath(String device) {
+        String[] command = DMCTL.build(isSU(), "getpath", device);
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String dmctlReplace(String device, boolean readOnly, DmctlTable table) {
+        String[] command = DMCTL.build(isSU(), "replace", device, readOnly ? "-ro" : "rw", "TODO");
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String tune2fsList(String blockPath) {
+        String[] command = TUNE2FS.build(isSU(), blockPath);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
     private static List<String> splitOutputLines(String output) {
         List<String> lines = new ArrayList<>();
         int st = 0;
@@ -486,4 +522,8 @@ class CommandTemplate {
 
         return command.toArray(new String[0]);
     }
+}
+
+class DmctlTable {
+
 }

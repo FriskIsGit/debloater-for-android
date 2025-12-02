@@ -246,6 +246,14 @@ public class CLI {
             } break;
 
             case "test": {
+                commands.ensurePrivileged();
+                System.out.println(commands.tune2fsList("/dev/block/dm-0"));
+                System.out.println(commands.dmctlListDevices());
+                String device = "system";
+                DmctlTable dmctlTable = commands.dmctlTable(device);
+                System.out.println(dmctlTable);
+                String mountPath = commands.dmctlGetPath(device);
+                System.out.println(mountPath);
             } break;
 
             default:
@@ -704,6 +712,8 @@ public class CLI {
         }
         String rwResult = commands.remountReadWrite(partition);
         if (rwResult.startsWith("adb: error:") || rwResult.startsWith("mount:")) {
+            // Use 'dmctl' to set /system or all partitions to rw
+            System.out.println(commands.dmctlListDevices());
             return rwResult;
         }
         String phoneDir = SYSTEM_PRIV_APP + appDir + "/";
