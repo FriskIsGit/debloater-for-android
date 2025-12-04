@@ -19,8 +19,9 @@ public class ADBCommands {
             TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, CHECK_SU, MOVE, GET_SELINUX_MODE,
-            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS;
+            MOUNT_READ_ONLY, MOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, GET_SELINUX_MODE,
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
+            SHELL_LOGCAT;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -76,7 +77,7 @@ public class ADBCommands {
         INSTALL_BACK = new CommandTemplate(adbTerms, "shell", "pm", "install-existing", "");
         DEVICES = new CommandTemplate(adbTerms, "devices");
         PM_PATH = new CommandTemplate(adbTerms, "shell", "pm", "path", "");
-        ADB_PULL = new CommandTemplate(adbTerms, "pull", "", "");
+        ADB_PULL = new CommandTemplate(adbTerms, "pull", "");
         TAR = new CommandTemplate(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
         EXTRACT_TAR = new CommandTemplate(adbTerms, "shell", "tar", "xfp", "", "-C", "");
         CHOWN = new CommandTemplate(adbTerms, "shell", "chown", "", "");
@@ -97,6 +98,7 @@ public class ADBCommands {
         ADB_UNROOT = new CommandTemplate(adbTerms, "unroot");
         MOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         MOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
+        MOUNT = new CommandTemplate(adbTerms, "shell", "mount");
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
@@ -110,6 +112,8 @@ public class ADBCommands {
         DMCTL = new CommandTemplate(adbTerms, "shell", "dmctl");
         TUNE2FS = new CommandTemplate(adbTerms, "shell", "tune2fs", "-l", "");
         PM_CHANGE_PERM = new CommandTemplate(adbTerms, "shell", "pm", "", "");
+        REBOOT = new CommandTemplate(adbTerms, "reboot");
+        SHELL_LOGCAT = new CommandTemplate(adbTerms, "shell", "logcat");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -201,6 +205,10 @@ public class ADBCommands {
 
     public String pull(String phonePath, String pcPath) {
         return executeCommandWithTimeout(ADB_PULL.build(phonePath, pcPath), 3000);
+    }
+
+    public String pull(String phonePath) {
+        return executeCommandWithTimeout(ADB_PULL.build(phonePath), 3000);
     }
 
     public String push(String pcPath, String phonePath) {
@@ -306,9 +314,40 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 3000);
     }
 
-    // These commands don't require a timeout, but it makes them more reliable
-    public String listDevices() {
-        return executeCommandWithTimeout(DEVICES.build(), 50);
+    public String mountAll() {
+        String[] command = MOUNT.build("-a");
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
+    }
+
+    public String mountBlockByName(String partition) {
+        String[] command = MOUNT.build("/dev/block/bootdevice/by-name/" + partition, "/" + partition);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
+    }
+
+    public List<Device> listDevices() {
+        String devicesOutput = executeCommandWithTimeout(DEVICES.build(), 50);
+        System.out.println(devicesOutput);
+        List<String> lines = splitOutputLines(devicesOutput);
+        List<Device> devices = new ArrayList<>();
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.isEmpty()) {
+                continue;
+            }
+            int space = line.indexOf('\t');
+            if (space == -1) {
+                space = line.indexOf(' ');
+                if (space == -1) {
+                    continue;
+                }
+            }
+            String serial = line.substring(0, space).trim();
+            String status = line.substring(space + 1).trim();
+            devices.add(new Device(serial, status));
+        }
+        return devices;
     }
 
     public String listPackagesWithUID(PackageType type) {
@@ -325,10 +364,7 @@ public class ADBCommands {
         String[] command = GET_BUILD.build(isSU());
         String buildOutput = executeCommandWithTimeout(command, 10_000);
         List<String> lines = splitOutputLines(buildOutput);
-        if (lines.size() == 0) {
-            return "";
-        }
-        return getPairValue(lines.get(0));
+        return lines.isEmpty() ? "" : getPairValue(lines.get(0));
     }
 
     public String listPackagesBy(PackageType type) {
@@ -441,7 +477,21 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
+    public String rebootRecovery() {
+        return executeCommandWithTimeout(REBOOT.build("recovery"), 10_000);
+    }
+
+    public String dumpLogs(String phonePath) {
+        String[] command = SHELL_LOGCAT.build("-d", "-f", phonePath);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
+    }
+
     private static List<String> splitOutputLines(String output) {
+        return splitOutputLines(output, true);
+    }
+
+    private static List<String> splitOutputLines(String output, boolean skipEmpty) {
         List<String> lines = new ArrayList<>();
         int st = 0;
         while (true) {
@@ -450,8 +500,11 @@ public class ADBCommands {
                 break;
             }
             String line = output.substring(st, separator);
-            lines.add(line);
             st = separator + 2;
+            if (line.isEmpty() && skipEmpty) {
+                continue;
+            }
+            lines.add(line);
         }
         return lines;
     }
@@ -550,6 +603,21 @@ class CommandTemplate {
 
 class DmctlTable {
 
+}
+
+class Device {
+    String serial;
+    String status;
+
+    public Device(String serial, String status) {
+        this.serial = serial;
+        this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return serial + " " + status;
+    }
 }
 
 

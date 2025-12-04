@@ -10,7 +10,7 @@ import java.util.*;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
-    private static final boolean SIMULATE_DEVICE = false;
+    private static final boolean SKIP_DEVICE_STAGE = false;
     private static final String STORAGE_EMULATED_0 = "/storage/emulated/0/"; // symbolic link to /data/media/0/
     private static final String SYSTEM_PRIV_APP = "/system/priv-app/"; // possible to debloat these apps
     private static final String DATA_USER_0 = "/data/user/0/";
@@ -228,6 +228,18 @@ public class CLI {
                 System.out.println(res);
             } break;
 
+            case "get-logs": {
+                String logFile = "logs.txt";
+                String phonePath = STORAGE_EMULATED_0 + logFile;
+                String logcatResult = commands.dumpLogs(phonePath);
+                if (logcatResult.startsWith("logcat:")) {
+                    errorExit(logcatResult);
+                }
+                String pullResult = commands.pull(phonePath);
+                System.out.println(pullResult);
+                commands.rm(phonePath);
+            } break;
+
             case "list": {
                 Options opts = Options.parseOptions(args, 1);
                 String res = commands.listPackagesWithUID(opts.packageType);
@@ -271,7 +283,18 @@ public class CLI {
                 System.out.println(propRes);
             } break;
 
-            case "test": {
+            case "mount-system": {
+                String mountRes = commands.mountBlockByName("system");
+                if (mountRes.startsWith("mount: ")) {
+                    errorExit(mountRes);
+                }
+            } break;
+
+            case "to-recovery": {
+                commands.rebootRecovery();
+            } break;
+
+            case "test-dm": {
                 commands.ensurePrivileged();
                 System.out.println(commands.tune2fsList("/dev/block/dm-0"));
                 System.out.println(commands.dmctlListDevices());
@@ -388,37 +411,25 @@ public class CLI {
     }
 
     private void runDevicesStage() {
-        String output = commands.listDevices();
-        System.out.print(output);
-        int devices = devicesConnected(output);
-        System.out.println(devices + (devices == 1 ? " connected device" : " connected devices"));
-        if (SIMULATE_DEVICE) {
+        if (SKIP_DEVICE_STAGE) {
+            System.out.println("Warning: Skipping device stage");
             return;
         }
-        if (devices == 0) {
+        List<Device> devices = commands.listDevices();
+        long connected = devices.stream()
+                .filter(device -> device.status.equals("device") || device.status.equals("recovery"))
+                .count();
+        System.out.println(connected + (connected == 1 ? " connected device" : " connected devices"));
+
+        if (devices.isEmpty()) {
             System.out.println("No devices detected (is 'USB debugging' enabled?), press enter to refresh");
             if (scanner.hasNextLine()) {
                 scanner.nextLine();
             }
             runDevicesStage();
-        } else if (devices > 1) {
+        } else if (devices.size() > 1) {
             System.err.println("Error: more than one device/emulator");
         }
-    }
-
-    private int devicesConnected(String output) {
-        int newLine = output.indexOf('\n');
-        if (newLine == -1) {
-            return 0;
-        }
-        int devices = 0;
-        for (int i = newLine + 1, len = output.length() - 6; i < len; i++) {
-            if (output.startsWith("device", i)) {
-                devices++;
-            }
-            // else "unauthorized" or "authorizing"
-        }
-        return devices;
     }
 
     private void importApps(String name, String exportDir) {
@@ -737,10 +748,9 @@ public class CLI {
             }
         }
         String rwResult = commands.remountReadWrite(partition);
-        if (rwResult.startsWith("adb: error:") || rwResult.startsWith("mount:")) {
-            // Use 'dmctl' to set /system or all partitions to rw
-            System.out.println(commands.dmctlListDevices());
-            return rwResult;
+        if (rwResult.startsWith("mount:") || rwResult.contains("is read-only")) {
+            System.out.println(rwResult);
+            return promptInstallationThroughRecovery(apkPath, appDir);
         }
         String phoneDir = SYSTEM_PRIV_APP + appDir + "/";
         String mkDirResult = commands.mkdir(phoneDir);
@@ -774,9 +784,29 @@ public class CLI {
         return rwResult + pushResult + roResult;
     }
 
+    // Alternatively explore using 'dmctl' to set /system or all partitions to rw
+    private String installSystemAppInRecovery(String apkPath, String appDir) {
+        /*String mountRes = commands.mountBlockByName("system");
+        if (mountRes.startsWith("mount: ")) {
+            return mountRes;
+        }*/
+        return "";
+    }
+
     private void printRestoreCommandInfo() {
         System.out.println("If you wish to install back any deleted system packages try running command below:");
         System.out.println(ADBCommands.INSTALL_COMMAND_1 + " or " + ADBCommands.INSTALL_COMMAND_2);
+    }
+
+    private String promptInstallationThroughRecovery(String apkPath, String appDir) {
+        System.out.println("Unable to remount as read/write.\n" +
+                "The installation can be done through recovery that supports ADB (such as TWRP/OrangeFox).\n" +
+                "The device will now reboot to recovery. Once in recovery mount 'system' partition\n" +
+                "Once completed, execute install-system-in-recovery");
+        Utilities.askToProceedOrExit(scanner);
+        commands.rebootRecovery();
+        runDevicesStage();
+        return installSystemAppInRecovery(apkPath, appDir);
     }
 
     public static void displayHelp() {
@@ -794,8 +824,8 @@ public class CLI {
         System.out.println("  uninstall        <name>            Uninstalls package by name per user");
         System.out.println("  install-back     <name>            Installs an existing sys package by name");
         System.out.println("  install          <path>            Installs app from local path (apk, apkm)");
-        System.out.println("  revoke    <perm> <name> [options]  Revokes given permission from app (aliases supported)");
-        System.out.println("  grant     <perm> <name> [options]  Grants given permission to app (aliases supported)");
+        System.out.println("  revoke    <perm> <name> [options]  Revokes permission from app (aliases supported)");
+        System.out.println("  grant     <perm> <name> [options]  Grants permission to app (aliases supported)");
         System.out.println("[ROOT]:");
         System.out.println("  install-system   <path> <app_dir>  Installs app as system app from local path");
         System.out.println();
@@ -819,6 +849,7 @@ public class CLI {
         System.out.println();
         System.out.println("Other commands:");
         System.out.println("  android                            Display Android version");
+        System.out.println("  get-logs                           Dump recent logs to local file - logs.txt");
         System.out.println("  list [options]                     List packages");
         System.out.println("  checkSU                            Check super user access (su binary)");
         System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");

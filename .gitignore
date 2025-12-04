@@ -4,10 +4,13 @@
 resources/META-INF
 pom.xml
 /export
-/export*
+/*export*
 /data-export*
+/temp_unpack
+/apk
+/test
 *.iml
 *.txt
 *.apk
 *.apkm
-/temp_unpack
+todo

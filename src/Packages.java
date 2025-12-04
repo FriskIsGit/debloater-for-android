@@ -50,6 +50,9 @@ public class Packages {
     }
 
     public static List<App> parseWithUID(String output) {
+        if (!output.startsWith("package:")) {
+            return Collections.emptyList();
+        }
         List<App> apps = new ArrayList<>();
         int outputLen = output.length();
         for (int i = 0; i < outputLen; i++) {
