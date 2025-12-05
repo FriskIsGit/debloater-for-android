@@ -19,9 +19,9 @@ public class ADBCommands {
             TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            MOUNT_READ_ONLY, MOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, GET_SELINUX_MODE,
+            REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, GET_SELINUX_MODE,
             GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
-            SHELL_LOGCAT;
+            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -71,6 +71,7 @@ public class ADBCommands {
     }
 
     private void setupCommands(String... adbTerms) {
+
         PM_UNINSTALL_PER_USER = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
         PM_UNINSTALL_PER_USER_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
         DISABLE = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
@@ -92,12 +93,11 @@ public class ADBCommands {
         INSTALL_CREATE = new CommandTemplate(adbTerms, "shell", "pm", "install-create", "-S", "");
         INSTALL_WRITE = new CommandTemplate(adbTerms, "shell", "pm", "install-write", "-S", "", "", "", "");
         INSTALL_COMMIT = new CommandTemplate(adbTerms, "shell", "pm", "install-commit", "");
-        ADB_INSTALL = new CommandTemplate(adbTerms, "install", "--bypass-low-target-sdk-block", "");
         ADB_INSTALL_MULTIPLE = new CommandTemplate(adbTerms, "install-multiple");
         ADB_ROOT = new CommandTemplate(adbTerms, "root");
         ADB_UNROOT = new CommandTemplate(adbTerms, "unroot");
-        MOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
-        MOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
+        REMOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
+        REMOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
         MOUNT = new CommandTemplate(adbTerms, "shell", "mount");
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
@@ -114,6 +114,14 @@ public class ADBCommands {
         PM_CHANGE_PERM = new CommandTemplate(adbTerms, "shell", "pm", "", "");
         REBOOT = new CommandTemplate(adbTerms, "reboot");
         SHELL_LOGCAT = new CommandTemplate(adbTerms, "shell", "logcat");
+        GET_SYSTEM_PROC_MOUNTS = new CommandTemplate(adbTerms, "shell", "cat /proc/mounts | grep /system");
+        setupLateInitCommands(adbTerms);
+    }
+
+    private void setupLateInitCommands(String... adbTerms) {
+        int version = getAndroidVersion();
+        String bypass = "--bypass-low-target-sdk-block";
+        ADB_INSTALL = new CommandTemplate(adbTerms, "install", version >= 14 ? bypass : "");
     }
 
     public String executeCommandTrim(String[] commands, int maxLen) {
@@ -303,13 +311,13 @@ public class ADBCommands {
     }
 
     public String remountReadOnly(String partition) {
-        String[] command = MOUNT_READ_ONLY.build(isSU(), partition);
+        String[] command = REMOUNT_READ_ONLY.build(isSU(), partition);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
 
     public String remountReadWrite(String partition) {
-        String[] command = MOUNT_READ_WRITE.build(isSU(), partition);
+        String[] command = REMOUNT_READ_WRITE.build(isSU(), partition);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
@@ -320,8 +328,14 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 3000);
     }
 
-    public String mountBlockByName(String partition) {
-        String[] command = MOUNT.build("/dev/block/bootdevice/by-name/" + partition, "/" + partition);
+    public String mount(String src, String dest) {
+        String[] command = MOUNT.build(src, dest);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 3000);
+    }
+
+    public String mount(String fs, String opts, String src, String dest) {
+        String[] command = MOUNT.build("-t", fs, "-o", opts, src, dest);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
     }
@@ -356,8 +370,15 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 50);
     }
 
-    public String getAndroidVersion() {
-        return executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
+    public int getAndroidVersion() {
+        String v = executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
+        int dot = v.indexOf('.');
+        String major = (dot == -1) ? v : v.substring(0, dot);
+        try {
+            return Integer.parseInt(major);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     public String getBuildType() {
@@ -481,10 +502,30 @@ public class ADBCommands {
         return executeCommandWithTimeout(REBOOT.build("recovery"), 10_000);
     }
 
+    public String reboot() {
+        return executeCommandWithTimeout(REBOOT.build(), 10_000);
+    }
+
     public String dumpLogs(String phonePath) {
         String[] command = SHELL_LOGCAT.build("-d", "-f", phonePath);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000);
+    }
+
+    public List<MountEntry> getSystemProcMounts() {
+        String[] command = GET_SYSTEM_PROC_MOUNTS.build();
+        String mountsOutput = executeCommandWithTimeout(command, 3000);
+        List<String> lines =  splitOutputLines(mountsOutput);
+        List<MountEntry> mounts = new ArrayList<>();
+        for (String line : lines) {
+            String[] parts = line.split(" ");
+            if (parts.length < 4) {
+                continue;
+            }
+            MountEntry entry = new MountEntry(parts[0], parts[1], parts[2], parts[3]);
+            mounts.add(entry);
+        }
+        return mounts;
     }
 
     private static List<String> splitOutputLines(String output) {
@@ -617,6 +658,17 @@ class Device {
     @Override
     public String toString() {
         return serial + " " + status;
+    }
+}
+
+class MountEntry {
+    public String source, target, fs, options;
+
+    public MountEntry(String source, String target, String fs, String options) {
+        this.source = source;
+        this.target = target;
+        this.fs = fs;
+        this.options = options;
     }
 }
 

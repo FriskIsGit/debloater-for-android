@@ -136,6 +136,18 @@ public class CLI {
                 System.out.println(result);
             } break;
 
+            case "install-system-recovery": {
+                ensureArgument(args, 1, "No path given. Provide the path to the apk");
+                String apkPath = args[1];
+                if (!Utilities.getExtension(apkPath).equals("apk")) {
+                    errorExit("The given app does not have .apk extension");
+                }
+                ensureArgument(args, 2, "No app directory name given where the apk will be put");
+                String appDirName = args[2];
+                String result = installSystemAppInRecovery(apkPath, appDirName);
+                System.out.println(result);
+            } break;
+
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
                 // String name = args[1];
@@ -250,8 +262,7 @@ public class CLI {
 
             case "Android":
             case "android": {
-                String version = commands.getAndroidVersion();
-                System.out.println("Android " + version);
+                System.out.println("Android " + commands.getAndroidVersion());
             } break;
 
             case "checkSU":
@@ -284,7 +295,7 @@ public class CLI {
             } break;
 
             case "mount-system": {
-                String mountRes = commands.mountBlockByName("system");
+                String mountRes = commands.mount("/dev/block/bootdevice/by-name/system", "/system_root");
                 if (mountRes.startsWith("mount: ")) {
                     errorExit(mountRes);
                 }
@@ -786,10 +797,55 @@ public class CLI {
 
     // Alternatively explore using 'dmctl' to set /system or all partitions to rw
     private String installSystemAppInRecovery(String apkPath, String appDir) {
-        /*String mountRes = commands.mountBlockByName("system");
-        if (mountRes.startsWith("mount: ")) {
-            return mountRes;
-        }*/
+        String systemRoot = "/system_root";
+        List<MountEntry> mounts = commands.getSystemProcMounts();
+        if (mounts.stream().noneMatch(m -> m.target.equals(systemRoot))) {
+            System.out.println(systemRoot  + " isn't mounted, mounting");
+            String mountRes = commands.mount("/dev/block/bootdevice/by-name/system", systemRoot);
+            if (mountRes.startsWith("mount: ")) {
+                return mountRes;
+            }
+        }
+
+        long freeSpace = commands.getAvailableSpaceInBytes(systemRoot);
+        if (freeSpace != -1) {
+            Path path = Paths.get(apkPath);
+            long apkSize = -1;
+            try {
+                apkSize = Files.size(path);
+            } catch (IOException e) {
+                errorExit(e.toString());
+            }
+            if (apkSize > freeSpace) {
+                errorExit("There's not enough space to install this apk.\n" +
+                        "Available space:  " + Utilities.formatBtoMB(freeSpace) + "\n" +
+                        "Application size: " + Utilities.formatBtoMB(apkSize));
+            }
+        }
+
+        String phoneDir = systemRoot + SYSTEM_PRIV_APP + appDir + "/";
+        String mkDirResult = commands.mkdir(phoneDir);
+        if (mkDirResult.startsWith("mkdir:")) {
+            return mkDirResult;
+        }
+
+        String phoneDestPath = phoneDir + appDir + ".apk";
+        String pushResult = commands.push(apkPath, phoneDestPath);
+        if (pushResult.startsWith("adb: error:")) {
+            return pushResult;
+        }
+
+        String chmodRes = commands.chmod("644", phoneDestPath);
+        if (chmodRes.startsWith("chmod:")) {
+            return chmodRes;
+        }
+        String chownRes = commands.changeOwnership("root", "root", phoneDestPath);
+        if (chownRes.startsWith("chown:")) {
+            return chownRes;
+        }
+        System.out.println("If the device fails to boot, delete the newly created apk. The device will now boot to system.");
+        Utilities.askToProceedOrExit(scanner);
+        commands.reboot();
         return "";
     }
 
@@ -801,8 +857,7 @@ public class CLI {
     private String promptInstallationThroughRecovery(String apkPath, String appDir) {
         System.out.println("Unable to remount as read/write.\n" +
                 "The installation can be done through recovery that supports ADB (such as TWRP/OrangeFox).\n" +
-                "The device will now reboot to recovery. Once in recovery mount 'system' partition\n" +
-                "Once completed, execute install-system-in-recovery");
+                "The device will now reboot to recovery.\n");
         Utilities.askToProceedOrExit(scanner);
         commands.rebootRecovery();
         runDevicesStage();
