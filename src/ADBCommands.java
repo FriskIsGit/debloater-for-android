@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -528,7 +530,7 @@ public class ADBCommands {
         return mounts;
     }
 
-    private static List<String> splitOutputLines(String output) {
+    public static List<String> splitOutputLines(String output) {
         return splitOutputLines(output, true);
     }
 
@@ -536,12 +538,18 @@ public class ADBCommands {
         List<String> lines = new ArrayList<>();
         int st = 0;
         while (true) {
-            int separator = output.indexOf("\r\n", st);
-            if (separator == -1) {
+            int lineEnd = output.indexOf("\n", st);
+            if (lineEnd == -1) {
                 break;
             }
-            String line = output.substring(st, separator);
-            st = separator + 2;
+            int contentEnd = lineEnd;
+            boolean hasCarriageReturn = contentEnd - 1 >= 0 && output.charAt(contentEnd-1) == '\r';
+            if (hasCarriageReturn) {
+                contentEnd--;
+            }
+            String line = output.substring(st, contentEnd);
+            st = lineEnd + 1;
+
             if (line.isEmpty() && skipEmpty) {
                 continue;
             }

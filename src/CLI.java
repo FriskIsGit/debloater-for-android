@@ -10,7 +10,7 @@ import java.util.*;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
-    private static final boolean SKIP_DEVICE_STAGE = false;
+    private static final boolean SKIP_DEVICE_STAGE = true;
     private static final String STORAGE_EMULATED_0 = "/storage/emulated/0/"; // symbolic link to /data/media/0/
     private static final String SYSTEM_PRIV_APP = "/system/priv-app/"; // possible to debloat these apps
     private static final String DATA_USER_0 = "/data/user/0/";
