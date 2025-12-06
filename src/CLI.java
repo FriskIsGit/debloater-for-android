@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CLI {
     private static final String PACKAGES_SRC = "/packages.txt";
@@ -148,6 +149,18 @@ public class CLI {
                 System.out.println(result);
             } break;
 
+            case "systemize": {
+                ensureArgument(args, 1, "No path given. Provide the path to the apk");
+                ensureArgument(args, 2, "No app directory name given where the apk will be put");
+                String packageName = args[1];
+                String appDirName = args[2];
+                String result = systemizeApp(packageName, appDirName);
+                System.out.println(result);
+            } break;
+            case "test":
+                long storageRes = commands.getDirectorySize(STORAGE_EMULATED_0 + "DCIM");
+                System.out.println(storageRes);
+                break;
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
                 // String name = args[1];
@@ -497,17 +510,13 @@ public class CLI {
             errorExit(pkgName + " doesn't exist?");
             return;
         }
-        String[] apks = output.split("\\r?\\n");
-        if (apks.length == 0) {
+        List<String> apks = ADBCommands.splitOutputLines(output).stream()
+                .filter(path -> path.length() > 8)
+                .map(path -> path.substring(8)) // trim package: prefix
+                .collect(Collectors.toList());
+        if (apks.isEmpty()) {
             errorExit("Nothing to export.");
             return;
-        }
-        for (int i = 0; i < apks.length; i++) {
-            // remove package: prefix from apk path
-            if (apks[i].length() < 8) {
-                continue;
-            }
-            apks[i] = apks[i].substring(8);
         }
 
         File pkgExport = Paths.get(outputDir).resolve(pkgName).toFile();
@@ -678,31 +687,30 @@ public class CLI {
     private void debloatCust() {
         commands.ensurePrivileged();
         final String CUST_APP = "/cust/app", CUSTPACK_APP = "/custpack/app";
-        String custAppSize = commands.getDirectorySize(CUST_APP);
-        String custpackAppSize = commands.getDirectorySize(CUSTPACK_APP);
-        boolean custAppMissing = custAppSize.startsWith("du: ");
-        boolean custpackAppMissing = custAppSize.startsWith("du: ");
-        if (custAppMissing && custpackAppMissing) {
+        long custAppSize = commands.getDirectorySize(CUST_APP);
+        long custpackAppSize = commands.getDirectorySize(CUSTPACK_APP);
+        if (custAppSize == -1 && custpackAppSize == -1) {
             System.out.println("No cust directories found");
             return;
         }
 
-        String sizeRes, custDir, lsDir;
-        if (custAppMissing) {
+        long custSize;
+        String custDir, lsDir;
+        if (custAppSize == -1) {
             custDir = CUSTPACK_APP;
-            sizeRes = custpackAppSize;
+            custSize = custpackAppSize;
         } else {
             custDir = CUST_APP;
-            sizeRes = custAppSize;
+            custSize = custAppSize;
         }
         lsDir = custDir;
-        if (!custAppMissing) {
+        if (custAppSize > 0) {
             String custCustomizedDir = custDir + "/customized";
             if(commands.exists(custCustomizedDir)) {
                 lsDir = custCustomizedDir;
             }
         }
-        System.out.print(sizeRes);
+        System.out.println(custDir + " = " + Utilities.formatBtoMB(custSize));
         String appList = commands.listFiles(lsDir);
         System.out.println(appList);
         System.out.println(custDir + " will be removed");
@@ -782,9 +790,9 @@ public class CLI {
             return pushResult;
         }
 
-        String chomdDirRes = commands.chmod("755", phoneDir);
-        if (chomdDirRes.startsWith("chmod:")) {
-            return chomdDirRes;
+        String chmodDirRes = commands.chmod("755", phoneDir);
+        if (chmodDirRes.startsWith("chmod:")) {
+            return chmodDirRes;
         }
 
         String chmodApkRes = commands.chmod("644", phoneDestPath);
@@ -854,6 +862,74 @@ public class CLI {
         return "";
     }
 
+    private String systemizeApp(String pkgName, String appDir) {
+        commands.ensurePrivileged();
+        String partition = "/";
+        String output = commands.getPackagePath(pkgName);
+        if (output.isEmpty()) {
+            errorExit(pkgName + " doesn't exist!");
+        }
+        List<String> apks = ADBCommands.splitOutputLines(output).stream()
+                .filter(path -> path.length() > 8)
+                .map(path -> path.substring(8)) // trim package: prefix
+                .collect(Collectors.toList());
+        if (apks.isEmpty()) {
+            errorExit("No apks found in the app's installation dir.");
+        }
+
+        String userAppDir = Paths.get(apks.get(0)).getParent().toString();
+        long freeSpace = commands.getAvailableSpaceInBytes(partition);
+        if (freeSpace != -1) {
+            long requiredSpace = commands.getDirectorySize(userAppDir);
+            if (requiredSpace > freeSpace) {
+                errorExit("There's not enough space on " + partition + " to install this app.\n" +
+                        "Available space:  " + Utilities.formatBtoMB(freeSpace) + "\n" +
+                        "Required space: " + Utilities.formatBtoMB(requiredSpace));
+            }
+        }
+
+        String rwResult = commands.remountReadWrite(partition);
+        if (rwResult.startsWith("mount:") || rwResult.contains("is read-only")) {
+            return rwResult;
+        }
+
+        String phoneDestDir = SYSTEM_PRIV_APP + appDir + "/";
+        String mkDirResult = commands.mkdir(phoneDestDir);
+        if (mkDirResult.startsWith("mkdir:")) {
+            return mkDirResult;
+        }
+        String chmodDirRes = commands.chmod("755", phoneDestDir);
+        if (chmodDirRes.startsWith("chmod:")) {
+            return chmodDirRes;
+        }
+
+        for (int i = 0; i < apks.size(); i++) {
+            String apk = apks.get(i);
+            if (apk.isEmpty()) {
+                continue;
+            }
+            String moveResult;
+            String destApkPath;
+            if (apk.endsWith("base.apk")) {
+                destApkPath = phoneDestDir + appDir + ".apk";
+                moveResult = commands.copy(apk, destApkPath);
+            } else {
+                destApkPath = phoneDestDir + apk;
+                moveResult = commands.copy(apk, destApkPath);
+            }
+            System.out.println(moveResult);
+            String chmodApkRes = commands.chmod("644", destApkPath);
+            if (chmodApkRes.startsWith("chmod:")) {
+                return chmodApkRes;
+            }
+            String chownRes = commands.changeOwnership("root", "root", destApkPath);
+            if (chownRes.startsWith("chown:")) {
+                return chownRes;
+            }
+        }
+        return commands.remountReadOnly(partition);
+    }
+
     private void printRestoreCommandInfo() {
         System.out.println("If you wish to install back any deleted system packages try running command below:");
         System.out.println(ADBCommands.INSTALL_COMMAND_1 + " or " + ADBCommands.INSTALL_COMMAND_2);
@@ -887,7 +963,8 @@ public class CLI {
         System.out.println("  revoke    <perm> <name> [options]  Revokes permission from app (aliases supported)");
         System.out.println("  grant     <perm> <name> [options]  Grants permission to app (aliases supported)");
         System.out.println("[ROOT]:");
-        System.out.println("  install-system   <path> <app_dir>  Installs app as system app from local path");
+        System.out.println("  systemize <package> <app_dir>      Turns existing app into a system app");
+        System.out.println("  install-system   <path> <app_dir>  Installs app from local path as system app");
         System.out.println();
         System.out.println("EXPORT (PHONE -> PC):");
         System.out.println("  export <name> [options]            Exports package by name");

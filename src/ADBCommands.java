@@ -19,7 +19,7 @@ public class ADBCommands {
             TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
-            REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, GET_SELINUX_MODE,
+            REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
             GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
             SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS;
 
@@ -102,6 +102,7 @@ public class ADBCommands {
         EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
+        COPY = new CommandTemplate(adbTerms, "shell", "cp", "", "");
         GET_SELINUX_MODE = new CommandTemplate(adbTerms, "shell", "getenforce");
         GET_PROP = new CommandTemplate(adbTerms, "shell", "getprop", "");
         SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
@@ -411,6 +412,12 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
+    public String copy(String phoneSrc, String phoneDestination) {
+        String[] command = COPY.build(isSU(), phoneSrc, phoneDestination);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
     public String getSELinuxMode() {
         String[] command = GET_SELINUX_MODE.build();
         return executeCommandWithTimeout(command, 10_000);
@@ -422,10 +429,40 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
-    public String getDirectorySize(String phoneDir) {
+    // Returns phone directory's size in bytes or -1 if dir doesn't exist
+    public long getDirectorySize(String phoneDir) {
         String[] command = DIRECTORY_SIZE.build(phoneDir);
         System.out.println(Arrays.toString(command));
-        return executeCommandWithTimeout(command, 10_000);
+        String duRes = executeCommandWithTimeout(command, 10_000);
+        if (duRes.startsWith("du:") || duRes.isEmpty()) {
+            return -1;
+        }
+        int space = duRes.indexOf('\t');
+        if (space == -1) {
+            space = duRes.indexOf(' ');
+            if (space == -1) {
+                return -1;
+            }
+        }
+        String sizeFormat = duRes.substring(0, space).trim();
+        if (sizeFormat.isEmpty()) {
+            return 0;
+        }
+        String value = sizeFormat.substring(0, sizeFormat.length()-1);
+        double val = Double.parseDouble(value);
+        char unit = sizeFormat.charAt(sizeFormat.length()-1);
+        switch (unit) {
+            case 'T':
+                return (long)(val * 1024 * 1024 * 1024 * 1024);
+            case 'G':
+                return (long)(val * 1024 * 1024 * 1024);
+            case 'M':
+                return (long)(val * 1024 * 1024);
+            case 'K':
+                return (long)(val * 1024);
+            default:
+                return (long)(val);
+        }
     }
 
     public String listFiles(String phoneDir) {
