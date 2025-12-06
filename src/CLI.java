@@ -782,9 +782,14 @@ public class CLI {
             return pushResult;
         }
 
-        String chmodRes = commands.chmod("644", phoneDestPath);
-        if (chmodRes.startsWith("chmod:")) {
-            return chmodRes;
+        String chomdDirRes = commands.chmod("755", phoneDir);
+        if (chomdDirRes.startsWith("chmod:")) {
+            return chomdDirRes;
+        }
+
+        String chmodApkRes = commands.chmod("644", phoneDestPath);
+        if (chmodApkRes.startsWith("chmod:")) {
+            return chmodApkRes;
         }
         String chownRes = commands.changeOwnership("root", "root", phoneDestPath);
         if (chownRes.startsWith("chown:")) {
