@@ -168,4 +168,12 @@ public class Utilities {
     public static String formatBtoMB(long bytes) {
         return formatFloat((double)bytes/(double)(1024*1024)) + " MB";
     }
+
+    public static String getParentDirectory(String path) {
+        Path parent = Paths.get(path).getParent();
+        if (parent == null) {
+            return "";
+        }
+        return parent.toString().replace("\\", "/");
+    }
 }

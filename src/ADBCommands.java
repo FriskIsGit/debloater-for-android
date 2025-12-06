@@ -21,7 +21,7 @@ public class ADBCommands {
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
             GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
-            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS;
+            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD;
 
     public static ADBCommands fromDir(String adbDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -116,6 +116,7 @@ public class ADBCommands {
         REBOOT = new CommandTemplate(adbTerms, "reboot");
         SHELL_LOGCAT = new CommandTemplate(adbTerms, "shell", "logcat");
         GET_SYSTEM_PROC_MOUNTS = new CommandTemplate(adbTerms, "shell", "cat /proc/mounts | grep /system");
+        DD = new CommandTemplate(adbTerms, "shell", "dd");
         setupLateInitCommands(adbTerms);
     }
 
@@ -563,6 +564,12 @@ public class ADBCommands {
             mounts.add(entry);
         }
         return mounts;
+    }
+
+    public String dd(String input, String output) {
+        String[] command = DD.buildSU("if=" + input, "of=" + output);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
     }
 
     public static List<String> splitOutputLines(String output) {

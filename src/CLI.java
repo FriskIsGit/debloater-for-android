@@ -20,6 +20,7 @@ public class CLI {
     private static final String DATA_EXPORT = "data-export";
     private static final String EXPORT = "export";
     private static final String TEMP_DIR = "temp_unpack";
+    private static final String DEV_BLOCK_BY_NAME = "/dev/block/by-name/";
 
     private ADBCommands commands;
     private List<String> bloatedPackages;
@@ -158,8 +159,6 @@ public class CLI {
                 System.out.println(result);
             } break;
             case "test":
-                long storageRes = commands.getDirectorySize(STORAGE_EMULATED_0 + "DCIM");
-                System.out.println(storageRes);
                 break;
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
@@ -291,6 +290,32 @@ public class CLI {
             case "get-build":
                 commands.ensurePrivileged();
                 System.out.println("Build type: " + commands.getBuildType());
+                break;
+
+            case "get-img":
+                commands.ensurePrivileged();
+                ensureArgument(args, 1, "Provide img name to pull from " + DEV_BLOCK_BY_NAME);
+                String name = args[1];
+                String srcBlock = DEV_BLOCK_BY_NAME + name;
+                if (commands.privilege == PrivilegeType.ADB_ROOT) {
+                    System.out.println("ADB root available, pulling straight from " + srcBlock);
+                    String pullResult = commands.pull(srcBlock, name + ".img");
+                    System.out.println(pullResult);
+                    return;
+                } else if(commands.privilege == PrivilegeType.SU) {
+                    String phoneDest = STORAGE_EMULATED_0 + name + ".img";
+                    String ddRes = commands.dd(srcBlock, phoneDest);
+                    if (ddRes.startsWith("dd:")) {
+                        System.out.println(ddRes);
+                        return;
+                    }
+                    System.out.println(ddRes);
+                    System.out.println("Pulling image from " + phoneDest);
+                    commands.pull(phoneDest);
+                    commands.rm(phoneDest);
+                }
+
+
                 break;
 
             case "adbInstall": {
@@ -877,7 +902,8 @@ public class CLI {
             errorExit("No apks found in the app's installation dir.");
         }
 
-        String userAppDir = Paths.get(apks.get(0)).getParent().toString();
+        // Get size of apks only
+        /*String userAppDir = Utilities.getParentDirectory((apks.get(0)));
         long freeSpace = commands.getAvailableSpaceInBytes(partition);
         if (freeSpace != -1) {
             long requiredSpace = commands.getDirectorySize(userAppDir);
@@ -886,7 +912,7 @@ public class CLI {
                         "Available space:  " + Utilities.formatBtoMB(freeSpace) + "\n" +
                         "Required space: " + Utilities.formatBtoMB(requiredSpace));
             }
-        }
+        }*/
 
         String rwResult = commands.remountReadWrite(partition);
         if (rwResult.startsWith("mount:") || rwResult.contains("is read-only")) {
@@ -917,7 +943,9 @@ public class CLI {
                 destApkPath = phoneDestDir + apk;
                 moveResult = commands.copy(apk, destApkPath);
             }
-            System.out.println(moveResult);
+            if (moveResult.startsWith("mv:")) {
+                return moveResult;
+            }
             String chmodApkRes = commands.chmod("644", destApkPath);
             if (chmodApkRes.startsWith("chmod:")) {
                 return chmodApkRes;
@@ -987,6 +1015,7 @@ public class CLI {
         System.out.println("Other commands:");
         System.out.println("  android                            Display Android version");
         System.out.println("  get-logs                           Dump recent logs to local file - logs.txt");
+        System.out.println("  get-img [img]                      Fetch any image from /dev/block/by-name/ to desktop");
         System.out.println("  list [options]                     List packages");
         System.out.println("  checkSU                            Check super user access (su binary)");
         System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");
