@@ -528,10 +528,16 @@ public class ADBCommands {
     }
 
     public String pmGrantPermission(String permission, String packageName, boolean force) {
+        if (!permission.startsWith("android.permission.")) {
+            permission = "android.permission." + permission;
+        }
         return pmChangePermission(true, force, packageName, permission);
     }
 
     public String pmRevokePermission(String permission, String packageName, boolean force) {
+        if (!permission.startsWith("android.permission.")) {
+            permission = "android.permission." + permission;
+        }
         return pmChangePermission(false, force, packageName, permission);
     }
 
