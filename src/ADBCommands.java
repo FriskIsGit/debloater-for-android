@@ -430,6 +430,14 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
+    public String getProp(String key) {
+        String[] command = GET_PROP.build(isSU(), key);
+        System.out.println(Arrays.toString(command));
+        String propOutput = executeCommandWithTimeout(command, 10_000);
+        List<String> lines = splitOutputLines(propOutput);
+        return lines.isEmpty() ? null : lines.get(0);
+    }
+
     // Returns phone directory's size in bytes or -1 if dir doesn't exist
     public long getDirectorySize(String phoneDir) {
         String[] command = DIRECTORY_SIZE.build(phoneDir);

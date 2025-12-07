@@ -264,6 +264,14 @@ public class CLI {
                 commands.rm(phonePath);
             } break;
 
+            case "ab-info":
+            case "AB-info": {
+                String abUpdate = commands.getProp("ro.build.ab_update");
+                String slotSuffix = commands.getProp("ro.boot.slot_suffix");
+                System.out.println("A/B partitioned: " + abUpdate);
+                System.out.println("Slot suffix: " + slotSuffix);
+            } break;
+
             case "list": {
                 Options opts = Options.parseOptions(args, 1);
                 String res = commands.listPackagesWithUID(opts.packageType);
@@ -1016,6 +1024,7 @@ public class CLI {
         System.out.println("  android                            Display Android version");
         System.out.println("  get-logs                           Dump recent logs to local file - logs.txt");
         System.out.println("  get-img [img]                      Fetch any image from /dev/block/by-name/ to desktop");
+        System.out.println("  AB-info                            Fetches information related to device A/B partitioning");
         System.out.println("  list [options]                     List packages");
         System.out.println("  checkSU                            Check super user access (su binary)");
         System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");
