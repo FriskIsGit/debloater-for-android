@@ -323,7 +323,6 @@ public class CLI {
                     commands.rm(phoneDest);
                 }
 
-
                 break;
 
             case "adbInstall": {
@@ -339,6 +338,12 @@ public class CLI {
                 String propRes = commands.setProp("persist.security.adbinput", value);
                 System.out.println(propRes);
             } break;
+
+            case "get-data-size":
+                commands.ensurePrivileged();
+                long size = commands.getDirectorySize(DATA_USER_0);
+                System.out.println(DATA_USER_0 + " = " + Utilities.formatBtoMB(size));
+                break;
 
             case "mount-system": {
                 String mountRes = commands.mount("/dev/block/bootdevice/by-name/system", "/system_root");
@@ -432,6 +437,7 @@ public class CLI {
         ensureDirectory(outputDir);
         String packagesRes = commands.listPackagesBy(type);
         List<String> packages = Packages.parseToList(packagesRes);
+        System.out.println("Backing up data from " + packages.size() + " packages");
         boolean tarredAny = false;
         for (String pkgName : packages) {
             String phoneDataDir = DATA_USER_0 + pkgName;
@@ -1022,10 +1028,11 @@ public class CLI {
         System.out.println();
         System.out.println("Other commands:");
         System.out.println("  android                            Display Android version");
+        System.out.println("  AB-info                            Fetch information related to device A/B partitioning");
         System.out.println("  get-logs                           Dump recent logs to local file - logs.txt");
-        System.out.println("  get-img [img]                      Fetch any image from /dev/block/by-name/ to desktop");
-        System.out.println("  AB-info                            Fetches information related to device A/B partitioning");
         System.out.println("  list [options]                     List packages");
+        System.out.println("  get-img [img]                      [ROOT] Fetch any image from /dev/block/by-name/ to desktop");
+        System.out.println("  get-data-size                      [ROOT] Get /data/user/0/ directory size (apps data dir)");
         System.out.println("  checkSU                            Check super user access (su binary)");
         System.out.println("  adbInstall [on/off]                [ROOT] Enable/Disable app installation via ADB on Xiaomi");
         System.out.println("  adbInput   [on/off]                [ROOT] Enable/Disable input simulation via ADB on Xiaomi");
