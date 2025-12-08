@@ -161,6 +161,12 @@ public class Utilities {
         okExit("Aborting.");
     }
 
+    public static boolean askToDelete(Scanner scanner) {
+        System.out.println("Delete? (y/n)");
+        String input = scanner.nextLine();
+        return input.startsWith("y");
+    }
+
     public static String formatFloat(double value) {
         return String.format("%.1f", value);
     }

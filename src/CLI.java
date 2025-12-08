@@ -158,8 +158,21 @@ public class CLI {
                 String result = systemizeApp(packageName, appDirName);
                 System.out.println(result);
             } break;
-            case "test":
-                break;
+
+            case "degoogle": {
+                List<Device> devices = commands.listDevices();
+                if (devices.isEmpty() || !devices.get(0).status.equals("recovery")) {
+                    System.out.println("Device not in recovery mode. It'll be rebooted to recovery");
+                    Utilities.askToProceedOrExit(scanner);
+                    commands.rebootRecovery();
+                    runDevicesStage();
+                }
+                System.out.println("Uninstalling GMS and Vending");
+                commands.uninstallPackagePerUser("com.android.vending");
+                commands.uninstallPackagePerUser("com.google.android.gms");
+                String result = degoogleInRecovery();
+                System.out.println(result);
+            } break;
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
                 // String name = args[1];
@@ -285,10 +298,10 @@ public class CLI {
                 System.out.println("Android " + commands.getAndroidVersion());
             } break;
 
-            case "checkSU":
+            case "checkSU": {
                 boolean res = commands.checkSU();
                 System.out.println("SU access: " + res);
-                break;
+            } break;
 
             case "SELinux":
             case "selinux":
@@ -300,7 +313,7 @@ public class CLI {
                 System.out.println("Build type: " + commands.getBuildType());
                 break;
 
-            case "get-img":
+            case "get-img": {
                 commands.ensurePrivileged();
                 ensureArgument(args, 1, "Provide img name to pull from " + DEV_BLOCK_BY_NAME);
                 String name = args[1];
@@ -310,7 +323,7 @@ public class CLI {
                     String pullResult = commands.pull(srcBlock, name + ".img");
                     System.out.println(pullResult);
                     return;
-                } else if(commands.privilege == PrivilegeType.SU) {
+                } else if (commands.privilege == PrivilegeType.SU) {
                     String phoneDest = STORAGE_EMULATED_0 + name + ".img";
                     String ddRes = commands.dd(srcBlock, phoneDest);
                     if (ddRes.startsWith("dd:")) {
@@ -322,8 +335,7 @@ public class CLI {
                     commands.pull(phoneDest);
                     commands.rm(phoneDest);
                 }
-
-                break;
+            } break;
 
             case "adbInstall": {
                 ensureArgument(args, 1, "Select 'on' or 'off'");
@@ -339,11 +351,11 @@ public class CLI {
                 System.out.println(propRes);
             } break;
 
-            case "get-data-size":
+            case "get-data-size": {
                 commands.ensurePrivileged();
                 long size = commands.getDirectorySize(DATA_USER_0);
                 System.out.println(DATA_USER_0 + " = " + Utilities.formatBtoMB(size));
-                break;
+            } break;
 
             case "mount-system": {
                 String mountRes = commands.mount("/dev/block/bootdevice/by-name/system", "/system_root");
@@ -371,6 +383,62 @@ public class CLI {
                 errorExit("Unrecognized action command: " + action);
                 break;
         }
+    }
+
+    private String degoogleInRecovery() {
+        String systemRoot = "/system_root";
+
+        List<MountEntry> mounts = commands.getSystemProcMounts();
+        if (mounts.stream().noneMatch(m -> m.target.equals(systemRoot))) {
+            System.out.println(systemRoot  + " isn't mounted, mounting");
+            String mountRes = commands.mount("/dev/block/bootdevice/by-name/system", systemRoot);
+            if (mountRes.startsWith("mount: ")) {
+                return mountRes;
+            }
+        }
+        final List<String> GOOGLE_APP_DIRECTORIES = Arrays.asList(
+                "GmsCore", "Phonesky", "GoogleServicesFramework", "GooglePartnerSetup", "Velvet", "GoogleOneTimeInitializer",
+                "GoogleBackupTransport", "PrebuiltGmsCore", "PrebuiltGmsCorePi", "Maps", "Youtube");
+        final List<String> SYSTEM_APP_LOCATIONS = Arrays.asList(
+                "/system/product/priv-app/", "/system/product/app/", "/system/priv-app/", "/system/app/",
+                "/system/system_ext/priv-app/");
+
+        List<String> removableLocations = new ArrayList<>();
+        for (String appLocation : SYSTEM_APP_LOCATIONS) {
+            String fullAppLocation = systemRoot + appLocation;
+            List<String> appDirs = commands.listItems(fullAppLocation).stream()
+                    .filter(GOOGLE_APP_DIRECTORIES::contains)
+                    .map(dir -> fullAppLocation + dir)
+                    .collect(Collectors.toList());
+            removableLocations.addAll(appDirs);
+        }
+
+        String splitPermsXml = systemRoot + "/system/product/etc/permissions/split-permissions-google.xml";
+        if (commands.exists(splitPermsXml)) {
+            removableLocations.add(splitPermsXml);
+        }
+
+        if (removableLocations.isEmpty()) {
+            System.out.println("Nothing to remove.");
+            return "";
+        }
+
+        System.out.println("Removable locations:");
+        for(String location : removableLocations) {
+            System.out.println("  " + location);
+        }
+
+        if (!Utilities.askToDelete(scanner)) {
+            return "";
+        }
+
+        for(String location : removableLocations) {
+            String rmRes = commands.rmRecurseForce(location);
+            if (rmRes.startsWith("rm: ")) {
+                System.err.println(rmRes);
+            }
+        }
+        return "";
     }
 
     private String noPackageOrFlagGivenErrorMessage(String action) {
@@ -750,12 +818,12 @@ public class CLI {
             }
         }
         System.out.println(custDir + " = " + Utilities.formatBtoMB(custSize));
-        String appList = commands.listFiles(lsDir);
+        List<String> appList = commands.listItems(lsDir);
         System.out.println(appList);
         System.out.println(custDir + " will be removed");
         Utilities.askToProceedOrExit(scanner);
         commands.remountReadWrite("/cust");
-        String rmRes = commands.rmDirectory(custDir);
+        String rmRes = commands.rmRecurseForce(custDir);
         System.out.println(rmRes);
         commands.remountReadOnly("/cust");
     }
@@ -849,6 +917,9 @@ public class CLI {
 
     // Alternatively explore using 'dmctl' to set /system or all partitions to rw
     private String installSystemAppInRecovery(String apkPath, String appDir) {
+        if (appDir.isEmpty()) {
+            errorExit("Provide an installation directory name");
+        }
         String systemRoot = "/system_root";
         List<MountEntry> mounts = commands.getSystemProcMounts();
         if (mounts.stream().noneMatch(m -> m.target.equals(systemRoot))) {
@@ -1007,6 +1078,7 @@ public class CLI {
         System.out.println("[ROOT]:");
         System.out.println("  systemize <package> <app_dir>      Turns existing app into a system app");
         System.out.println("  install-system   <path> <app_dir>  Installs app from local path as system app");
+        System.out.println("  degoogle                           Removes stock GMS, PlayStore and GSF (in recovery)");
         System.out.println();
         System.out.println("EXPORT (PHONE -> PC):");
         System.out.println("  export <name> [options]            Exports package by name");

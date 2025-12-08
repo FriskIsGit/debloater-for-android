@@ -16,7 +16,7 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID, PM_CHANGE_PERM,
-            TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_DIR, MK_DIR, PM_PATH, DEVICES,
+            TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_RECURSE_FORCE, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
@@ -85,7 +85,7 @@ public class ADBCommands {
         CHMOD = new CommandTemplate(adbTerms, "shell", "chmod", "", "");
         RESTORECON = new CommandTemplate(adbTerms, "shell", "restorecon", "-r", "-n", "v", "");
         RM = new CommandTemplate(adbTerms, "shell", "rm", "-f", "");
-        RM_DIR = new CommandTemplate(adbTerms, "shell", "rm", "-rf", "");
+        RM_RECURSE_FORCE = new CommandTemplate(adbTerms, "shell", "rm", "-rf", "");
         ADB_PUSH = new CommandTemplate(adbTerms, "push", "", "");
         MK_DIR = new CommandTemplate(adbTerms, "shell", "mkdir", "-p", "");
         LIST_PACKAGES_BY_TYPE = new CommandTemplate(adbTerms, "shell", "pm", "list", "packages", "");
@@ -99,7 +99,7 @@ public class ADBCommands {
         REMOUNT_READ_ONLY = new CommandTemplate(adbTerms, "shell", "mount", "-o", "ro,remount", "");
         REMOUNT_READ_WRITE = new CommandTemplate(adbTerms, "shell", "mount", "-o", "rw,remount", "");
         MOUNT = new CommandTemplate(adbTerms, "shell", "mount");
-        EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-d", "", "&&", "echo", "Yes");
+        EXISTS = new CommandTemplate(adbTerms, "shell", "test", "-e", "", "&&", "echo", "Yes");
         CHECK_SU = new CommandTemplate(adbTerms, "shell", "id");
         MOVE = new CommandTemplate(adbTerms, "shell", "mv", "", "");
         COPY = new CommandTemplate(adbTerms, "shell", "cp", "", "");
@@ -243,14 +243,15 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 4000);
     }
 
-    public String rmDirectory(String phoneDir) {
-        String[] command = RM_DIR.build(isSU(), phoneDir);
+    public String rmRecurseForce(String phoneDir) {
+        String[] command = RM_RECURSE_FORCE.build(isSU(), phoneDir);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000);
     }
 
     public boolean exists(String phonePath) {
         String[] command = EXISTS.build(isSU(), phonePath);
+        System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 3000).startsWith("Yes");
     }
 
@@ -474,9 +475,10 @@ public class ADBCommands {
         }
     }
 
-    public String listFiles(String phoneDir) {
+    public List<String> listItems(String phoneDir) {
         String[] command = LS_SIMPLE.build(isSU(), phoneDir);
-        return executeCommandWithTimeout(command, 10_000);
+        String output = executeCommandWithTimeout(command, 10_000);
+        return splitOutputLines(output);
     }
 
     public long getAvailableSpaceInBytes(String phoneDir) {
