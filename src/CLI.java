@@ -173,6 +173,9 @@ public class CLI {
                 String result = degoogleInRecovery();
                 System.out.println(result);
             } break;
+            case "test": {
+            } break;
+
             case "uninstall-system": {
                 ensureArgument(args, 1, "No path given.");
                 // String name = args[1];

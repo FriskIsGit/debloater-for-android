@@ -14,13 +14,13 @@ public class ADBCommands {
 
     PrivilegeType privilege = null;
     private final ProcessBuilder procBuilder = new ProcessBuilder();
-    private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE,
+    private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE_USER,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID, PM_CHANGE_PERM,
             TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_RECURSE_FORCE, MK_DIR, PM_PATH, DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
-            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS_SIMPLE, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
+            GET_PROP, SET_PROP, DIRECTORY_SIZE, LS, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
             SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD;
 
     public static ADBCommands fromDir(String adbDir) {
@@ -74,7 +74,7 @@ public class ADBCommands {
 
         PM_UNINSTALL_PER_USER = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
         PM_UNINSTALL_PER_USER_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
-        DISABLE = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
+        DISABLE_USER = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
         INSTALL_BACK = new CommandTemplate(adbTerms, "shell", "pm", "install-existing", "");
         DEVICES = new CommandTemplate(adbTerms, "devices");
         PM_PATH = new CommandTemplate(adbTerms, "shell", "pm", "path", "");
@@ -107,7 +107,7 @@ public class ADBCommands {
         GET_PROP = new CommandTemplate(adbTerms, "shell", "getprop", "");
         SET_PROP = new CommandTemplate(adbTerms, "shell", "setprop", "", "");
         DIRECTORY_SIZE = new CommandTemplate(adbTerms, "shell", "du", "-sh", "");
-        LS_SIMPLE = new CommandTemplate(adbTerms, "shell", "ls", "-1", "");
+        LS = new CommandTemplate(adbTerms, "shell", "ls", "");
         DISK_FREE = new CommandTemplate(adbTerms, "shell", "df", "");
         GET_BUILD = new CommandTemplate(adbTerms, "shell", "cat /system/build.prop | grep build.type");
         DMCTL = new CommandTemplate(adbTerms, "shell", "dmctl");
@@ -161,7 +161,7 @@ public class ADBCommands {
     }
 
     public String disablePackageByName(String pkgName) {
-        return executeCommandWithTimeout(DISABLE.build(pkgName), 3000);
+        return executeCommandWithTimeout(DISABLE_USER.build(pkgName), 3000);
     }
 
     public String installExistingPackage(String pkgName) {
@@ -476,9 +476,16 @@ public class ADBCommands {
     }
 
     public List<String> listItems(String phoneDir) {
-        String[] command = LS_SIMPLE.build(isSU(), phoneDir);
+        String[] command = LS.build(isSU(), "-1", phoneDir);
         String output = executeCommandWithTimeout(command, 10_000);
         return splitOutputLines(output);
+    }
+
+    // Find a way to parse directories with spaces in name
+    public List<DirEntry> listDirectorySU(String phoneDir) {
+        String[] command = LS.build(isSU(), "-l", phoneDir);
+        String output = executeCommandWithTimeout(command, 10_000);
+        return splitOutputLines(output).stream().skip(1).map(DirEntry::fromLine).collect(Collectors.toList());
     }
 
     public long getAvailableSpaceInBytes(String phoneDir) {
@@ -709,7 +716,9 @@ class CommandTemplate {
 }
 
 class DmctlTable {
-
+    long start, end;
+    String target;
+    String targetParams;
 }
 
 class Device {
@@ -735,6 +744,34 @@ class MountEntry {
         this.target = target;
         this.fs = fs;
         this.options = options;
+    }
+}
+
+class DirEntry {
+    // drwxrwx--- 2 root everybody 3488 2025-07-25 09:17 Alarms -> somewhere
+    public String date, time, name, pointsTo;
+
+    public DirEntry(String date, String time, String name, String pointsTo) {
+        this.date = date;
+        this.time = time;
+        this.name = name;
+        this.pointsTo = pointsTo;
+    }
+
+    public static DirEntry fromLine(String line) {
+        List<String> parts = Utilities.splitBy(line, ' ');
+       int size = parts.size();
+       if (size < 8) {
+           return null;
+       }
+       String date = parts.get(5);
+       String time = parts.get(6);
+       String name = parts.get(7);
+       String pointsTo = null;
+       if (parts.get(size-2).equals("->")) {
+           pointsTo = parts.get(size-1);
+       }
+       return new DirEntry(date, time, name, pointsTo);
     }
 }
 

@@ -182,4 +182,24 @@ public class Utilities {
         }
         return parent.toString().replace("\\", "/");
     }
+
+    public static List<String> splitBy(String line, char target) {
+        List<String> components = new ArrayList<>();
+        StringBuilder content = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            char chr = line.charAt(i);
+            if (chr == target) {
+                if (!content.isEmpty()) {
+                    components.add(content.toString());
+                    content.setLength(0);
+                }
+            } else {
+                content.append(chr);
+            }
+        }
+        if (!content.isEmpty()) {
+            components.add(content.toString());
+        }
+        return components;
+    }
 }
