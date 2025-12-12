@@ -516,8 +516,16 @@ public class ADBCommands {
 
     public DmctlTable dmctlTable(String device) {
         String[] command = DMCTL.build(isSU(), "table", device);
-        String res = executeCommandWithTimeout(command, 10_000);
-        return new DmctlTable();
+        String tableResult = executeCommandWithTimeout(command, 10_000);
+        List<String> lines = splitOutputLines(tableResult);
+        if (lines.size() < 2) {
+            return null;
+        }
+        String deviceDetails = lines.get(1);
+        if (deviceDetails.startsWith("Could not query table status of device")) {
+            return null;
+        }
+        return DmctlTable.fromLine(deviceDetails);
     }
 
     public String dmctlGetPath(String device) {
@@ -717,8 +725,34 @@ class CommandTemplate {
 
 class DmctlTable {
     long start, end;
-    String target;
-    String targetParams;
+    String target, targetParams;
+
+    public DmctlTable(long start, long end, String target, String targetParams) {
+        this.start = start;
+        this.end = end;
+        this.target = target;
+        this.targetParams = targetParams;
+    }
+
+    public static DmctlTable fromLine(String line) {
+        int colon = line.indexOf(':');
+        if (colon <= 0) {
+            return null;
+        }
+        String[] range = line.substring(0, colon).split("-");
+        if (range.length != 2) {
+            return null;
+        }
+        long start = Long.parseLong(range[0]);
+        long end = Long.parseLong(range[1]);
+        int comma = line.indexOf(',', colon + 1);
+        if (comma == -1) {
+            return null;
+        }
+        String target = line.substring(colon + 1, comma).trim();
+        String params = line.substring(comma + 1).trim();
+        return new DmctlTable(start, end, target, params);
+    }
 }
 
 class Device {
