@@ -174,8 +174,8 @@ public class CLI {
                 System.out.println(result);
             } break;
             case "test": {
-                DmctlTable table = commands.dmctlTable("system");
-                System.out.println(table);
+                commands.ensurePrivileged();
+                List<String> devices = commands.dmctlListDevices();
             } break;
 
             case "uninstall-system": {

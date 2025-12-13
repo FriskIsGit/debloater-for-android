@@ -753,6 +753,11 @@ class DmctlTable {
         String params = line.substring(comma + 1).trim();
         return new DmctlTable(start, end, target, params);
     }
+
+    @Override
+    public String toString() {
+        return start + "-" + end + ": " + target + ", " + targetParams;
+    }
 }
 
 class Device {
