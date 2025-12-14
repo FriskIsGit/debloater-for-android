@@ -59,7 +59,7 @@ public class CLI {
     }
 
     protected void start(String[] args) {
-        //awaitAdbDevice();
+        awaitAdbDevice();
         String action = args[0];
         switch (action) {
             case "debloat":
@@ -200,7 +200,7 @@ public class CLI {
                 commands.rebootFastboot();
                 awaitFastbootDevice();
                 commands.flash(partition, pcImgPath);
-                commands.rebootFastboot();
+                commands.rebootFromFastboot();
             } break;
 
             case "test": {
