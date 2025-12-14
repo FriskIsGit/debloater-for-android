@@ -189,7 +189,7 @@ public class Utilities {
         for (int i = 0; i < line.length(); i++) {
             char chr = line.charAt(i);
             if (chr == target) {
-                if (!content.isEmpty()) {
+                if (content.length() > 0) {
                     components.add(content.toString());
                     content.setLength(0);
                 }
@@ -197,7 +197,7 @@ public class Utilities {
                 content.append(chr);
             }
         }
-        if (!content.isEmpty()) {
+        if (content.length() > 0) {
             components.add(content.toString());
         }
         return components;

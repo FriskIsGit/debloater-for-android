@@ -373,6 +373,8 @@ public class CLI {
 
             case "test-dm": {
                 commands.ensurePrivileged();
+                String remountRootRes = commands.remountReadWrite("/");
+                System.out.println(remountRootRes);
                 List<String> devices = commands.dmctlListDevices();
                 Optional<String> maybeDevice = devices.stream().filter(e -> e.equals("system")).findFirst();
                 String device = null;
@@ -394,6 +396,9 @@ public class CLI {
                 Utilities.askToProceedOrExit(scanner);
                 String replaceResult = commands.dmctlReplace(device, table);
                 System.out.println(replaceResult);
+                if (replaceResult.contains("Failed to replace")) {
+                    return;
+                }
             } break;
 
             default:

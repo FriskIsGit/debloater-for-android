@@ -374,7 +374,12 @@ public class ADBCommands {
     }
 
     public int getAndroidVersion() {
-        String v = executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
+        String vRes = executeCommandWithTimeout(GET_PROP.build("ro.build.version.release"), 50);
+        List<String> lines = splitOutputLines(vRes);
+        if (lines.size() == 0) {
+            return -1;
+        }
+        String v = lines.get(0);
         int dot = v.indexOf('.');
         String major = (dot == -1) ? v : v.substring(0, dot);
         try {
