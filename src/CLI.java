@@ -663,14 +663,14 @@ public class CLI {
         int i = 0;
         for (File apkDir : apkDirs) {
             System.out.println("Installing " + apkDir.getName());
-            File[] apks = apkDir.listFiles(file -> file.isFile() && file.getName().endsWith(".apk"));
+            File[] apks = apkDir.listFiles(file -> file.isFile() && Utilities.getExtension(file.getName()).equals("apk"));
             assert apks != null;
 
             String installOutput;
             if (apks.length == 1) {
                 installOutput = commands.install(apks[0].getPath());
             } else {
-                String[] apkPaths = Utilities.filesToPaths(apkDirs);
+                String[] apkPaths = Utilities.filesToPaths(apks);
                 installOutput = commands.installMultiple(apkPaths);
             }
 
