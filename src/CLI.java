@@ -174,8 +174,6 @@ public class CLI {
                 System.out.println(result);
             } break;
             case "test": {
-                commands.ensurePrivileged();
-                List<String> devices = commands.dmctlListDevices();
             } break;
 
             case "uninstall-system": {
@@ -375,13 +373,27 @@ public class CLI {
 
             case "test-dm": {
                 commands.ensurePrivileged();
-                System.out.println(commands.tune2fsList("/dev/block/dm-0"));
-                System.out.println(commands.dmctlListDevices());
-                String device = "system";
-                DmctlTable dmctlTable = commands.dmctlTable(device);
-                System.out.println(dmctlTable);
+                List<String> devices = commands.dmctlListDevices();
+                Optional<String> maybeDevice = devices.stream().filter(e -> e.equals("system")).findFirst();
+                String device = null;
+                if (maybeDevice.isPresent()) {
+                    device = maybeDevice.get();
+                }
+                if (device == null && !devices.isEmpty()) {
+                    device = devices.get(0);
+                }
+                if (device == null) {
+                    return;
+                }
+                DmctlTable table = commands.dmctlTable(device);
+                System.out.println("Picked device: " + device);
+                System.out.println("Device table: " + table);
                 String mountPath = commands.dmctlGetPath(device);
-                System.out.println(mountPath);
+                System.out.println("Mount path: " + mountPath);
+                System.out.println("Replace with read-write?");
+                Utilities.askToProceedOrExit(scanner);
+                String replaceResult = commands.dmctlReplace(device, table);
+                System.out.println(replaceResult);
             } break;
 
             default:

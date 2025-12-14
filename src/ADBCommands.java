@@ -533,8 +533,15 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
-    public String dmctlReplace(String device, boolean readOnly, DmctlTable table) {
-        String[] command = DMCTL.build(isSU(), "replace", device, readOnly ? "-ro" : "rw", "TODO");
+    public String dmctlReplace(String device, DmctlTable table) {
+        String target = "linear";
+        String[] command = DMCTL.build(isSU(), "replace", device, target,
+                String.valueOf(table.start),
+                String.valueOf(table.end),
+                table.getBlockDevice(),
+                String.valueOf(table.getOffset())
+        );
+        System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000);
     }
 
@@ -757,6 +764,35 @@ class DmctlTable {
     @Override
     public String toString() {
         return start + "-" + end + ": " + target + ", " + targetParams;
+    }
+
+    public String getBlockDevice() {
+        String[] params = targetParams.split(" ");
+        for(String param : params) {
+            if (param.contains(":")) {
+                return param.trim();
+            }
+        }
+        return null;
+    }
+
+    public long getOffset() {
+        String[] params = targetParams.split(" ");
+        for(String param : params) {
+            if (param.contains(":")) {
+                continue;
+            }
+            long offset;
+            try {
+                offset = Long.parseLong(param);
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (offset % 2 == 0) {
+                return offset;
+            }
+        }
+        return -1;
     }
 }
 
