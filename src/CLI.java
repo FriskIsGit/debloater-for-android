@@ -22,13 +22,13 @@ public class CLI {
     private static final String TEMP_DIR = "temp_unpack";
     private static final String DEV_BLOCK_BY_NAME = "/dev/block/by-name/";
 
-    private ADBCommands commands;
+    private Commands commands;
     private List<String> bloatedPackages;
     private final Scanner scanner = new Scanner(System.in);
     private Set<String> packages;
 
 
-    public static void start(ADBCommands commands, String[] args) {
+    public static void start(Commands commands, String[] args) {
         CLI cli = new CLI();
         cli.commands = commands;
         cli.loadAndInit(args[0]);
@@ -59,7 +59,7 @@ public class CLI {
     }
 
     protected void start(String[] args) {
-        runDevicesStage();
+        //awaitAdbDevice();
         String action = args[0];
         switch (action) {
             case "debloat":
@@ -160,12 +160,12 @@ public class CLI {
             } break;
 
             case "degoogle": {
-                List<Device> devices = commands.listDevices();
+                List<Device> devices = commands.listAdbDevices();
                 if (devices.isEmpty() || !devices.get(0).status.equals("recovery")) {
                     System.out.println("Device not in recovery mode. It'll be rebooted to recovery");
                     Utilities.askToProceedOrExit(scanner);
                     commands.rebootRecovery();
-                    runDevicesStage();
+                    awaitAdbDevice();
                 }
                 System.out.println("Uninstalling GMS and Vending");
                 commands.uninstallPackagePerUser("com.android.vending");
@@ -173,6 +173,36 @@ public class CLI {
                 String result = degoogleInRecovery();
                 System.out.println(result);
             } break;
+
+            case "flash": {
+                ensureArgument(args, 1, "No boot partition given.");
+                ensureArgument(args, 2, "No phone path given");
+                String partition = args[1];
+                String phoneImgPath = args[2];
+                if (!Utilities.getExtension(phoneImgPath).equals("img")) {
+                    errorExit(phoneImgPath + " is not a .img file");
+                }
+                if (!commands.exists(phoneImgPath)) {
+                   errorExit(phoneImgPath + " doesn't exist");
+                }
+                try {
+                    Files.createDirectories(Paths.get(TEMP_DIR));
+                } catch (IOException e) {
+                    errorExit(e.toString());
+                }
+                String pullRes = commands.pull(phoneImgPath, TEMP_DIR + "/");
+                if (pullRes.startsWith("adb: error:")) {
+                    errorExit(pullRes);
+                }
+                String imgName = new File(phoneImgPath).getName();
+                String pcImgPath = TEMP_DIR + "/" + imgName;
+                System.out.println("Rebooting to fastboot");
+                commands.rebootFastboot();
+                awaitFastbootDevice();
+                commands.flash(partition, pcImgPath);
+                commands.rebootFastboot();
+            } break;
+
             case "test": {
             } break;
 
@@ -563,23 +593,45 @@ public class CLI {
         errorExit(errorMessage);
     }
 
-    private void runDevicesStage() {
+    private void awaitAdbDevice() {
         if (SKIP_DEVICE_STAGE) {
             System.out.println("Warning: Skipping device stage");
             return;
         }
-        List<Device> devices = commands.listDevices();
+        List<Device> devices = commands.listAdbDevices();
         long connected = devices.stream()
                 .filter(device -> device.status.equals("device") || device.status.equals("recovery"))
                 .count();
         System.out.println(connected + (connected == 1 ? " connected device" : " connected devices"));
 
         if (devices.isEmpty()) {
-            System.out.println("No devices detected (is 'USB debugging' enabled?), press enter to refresh");
+            System.out.println("No ADB devices detected (is 'USB debugging' enabled?), press enter to refresh");
             if (scanner.hasNextLine()) {
                 scanner.nextLine();
             }
-            runDevicesStage();
+            awaitAdbDevice();
+        } else if (devices.size() > 1) {
+            System.err.println("Error: more than one device/emulator");
+        }
+    }
+
+    private void awaitFastbootDevice() {
+        if (SKIP_DEVICE_STAGE) {
+            System.out.println("Warning: Skipping fastboot device stage");
+            return;
+        }
+        List<Device> devices = commands.listFastbootDevices();
+        long connected = devices.stream()
+                .filter(device -> device.status.equals("fastboot"))
+                .count();
+        System.out.println(connected + (connected == 1 ? " connected device" : " connected devices"));
+
+        if (devices.isEmpty()) {
+            System.out.println("No devices in fastboot mode detected. Ensure the correct driver is assigned. Press enter to refresh.");
+            if (scanner.hasNextLine()) {
+                scanner.nextLine();
+            }
+            awaitFastbootDevice();
         } else if (devices.size() > 1) {
             System.err.println("Error: more than one device/emulator");
         }
@@ -639,7 +691,7 @@ public class CLI {
             errorExit(pkgName + " doesn't exist?");
             return;
         }
-        List<String> apks = ADBCommands.splitOutputLines(output).stream()
+        List<String> apks = Commands.splitOutputLines(output).stream()
                 .filter(path -> path.length() > 8)
                 .map(path -> path.substring(8)) // trim package: prefix
                 .collect(Collectors.toList());
@@ -1001,7 +1053,7 @@ public class CLI {
         if (output.isEmpty()) {
             errorExit(pkgName + " doesn't exist!");
         }
-        List<String> apks = ADBCommands.splitOutputLines(output).stream()
+        List<String> apks = Commands.splitOutputLines(output).stream()
                 .filter(path -> path.length() > 8)
                 .map(path -> path.substring(8)) // trim package: prefix
                 .collect(Collectors.toList());
@@ -1036,8 +1088,7 @@ public class CLI {
             return chmodDirRes;
         }
 
-        for (int i = 0; i < apks.size(); i++) {
-            String apk = apks.get(i);
+        for (String apk : apks) {
             if (apk.isEmpty()) {
                 continue;
             }
@@ -1045,11 +1096,10 @@ public class CLI {
             String destApkPath;
             if (apk.endsWith("base.apk")) {
                 destApkPath = phoneDestDir + appDir + ".apk";
-                moveResult = commands.copy(apk, destApkPath);
             } else {
                 destApkPath = phoneDestDir + apk;
-                moveResult = commands.copy(apk, destApkPath);
             }
+            moveResult = commands.copy(apk, destApkPath);
             if (moveResult.startsWith("mv:")) {
                 return moveResult;
             }
@@ -1067,7 +1117,7 @@ public class CLI {
 
     private void printRestoreCommandInfo() {
         System.out.println("If you wish to install back any deleted system packages try running command below:");
-        System.out.println(ADBCommands.INSTALL_COMMAND_1 + " or " + ADBCommands.INSTALL_COMMAND_2);
+        System.out.println(Commands.INSTALL_COMMAND_1 + " or " + Commands.INSTALL_COMMAND_2);
     }
 
     private String promptInstallationThroughRecovery(String apkPath, String appDir) {
@@ -1076,7 +1126,7 @@ public class CLI {
                 "The device will now reboot to recovery.\n");
         Utilities.askToProceedOrExit(scanner);
         commands.rebootRecovery();
-        runDevicesStage();
+        awaitAdbDevice();
         return installSystemAppInRecovery(apkPath, appDir);
     }
 
@@ -1125,6 +1175,7 @@ public class CLI {
         System.out.println("  AB-info                            Fetch information related to device A/B partitioning");
         System.out.println("  get-logs                           Dump recent logs to local file - logs.txt");
         System.out.println("  list [options]                     List packages");
+        System.out.println("  flash [partition] [phone_path]     Flash patched img file from phone to given partition");
         System.out.println("  get-img [img]                      [ROOT] Fetch any image from /dev/block/by-name/ to desktop");
         System.out.println("  get-data-size                      [ROOT] Get /data/user/0/ directory size (apps data dir)");
         System.out.println("  checkSU                            Check super user access (su binary)");

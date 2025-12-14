@@ -3,7 +3,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class ADBCommands {
+public class Commands {
     //manually: adb shell pm uninstall -k --user 0 com.x
     public static final String INSTALL_COMMAND_1 = "adb shell cmd package install-existing PACKAGE";
     public static final String INSTALL_COMMAND_2 = "adb shell pm install-existing PACKAGE";
@@ -16,42 +16,41 @@ public class ADBCommands {
     private final ProcessBuilder procBuilder = new ProcessBuilder();
     private CommandTemplate PM_UNINSTALL_PER_USER, PM_UNINSTALL_PER_USER_KEEP, DISABLE_USER,
             LIST_PACKAGES_BY_TYPE, LIST_PACKAGES_WITH_UID, PM_CHANGE_PERM,
-            TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_RECURSE_FORCE, MK_DIR, PM_PATH, DEVICES,
+            TAR, CHOWN, CHMOD, EXTRACT_TAR, RESTORECON, RM, RM_RECURSE_FORCE, MK_DIR, PM_PATH, ADB_DEVICES,
             ADB_PULL, ADB_PUSH, ADB_INSTALL, ADB_INSTALL_MULTIPLE, ADB_ROOT, ADB_UNROOT,
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
             GET_PROP, SET_PROP, DIRECTORY_SIZE, LS, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
-            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD;
+            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD, FLASH, FASTBOOT_DEVICES, FASTBOOT_REBOOT;
 
-    public static ADBCommands fromDir(String adbDir) {
+    public static Commands fromDir(String toolsDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
-        ADBCommands commands = new ADBCommands();
-        adbDir = Utilities.normalizeStringPath(adbDir);
-        String adbPath = formAdbPath(adbDir);
-        commands.setupCommands(adbPath);
+        Commands commands = new Commands();
+        toolsDir = Utilities.normalizeStringPath(toolsDir);
+        commands.setupAdbCommands(append(toolsDir, "adb"));
+        commands.setupFastbootCommands(append(toolsDir, "fastboot"));
         return commands;
     }
 
-    public static ADBCommands fromEnv() {
+    public static Commands fromEnv() {
         //execute with anywhere since adb is seen as a program, usually Linux
-        ADBCommands commands = new ADBCommands();
-        commands.setupCommands("adb");
+        Commands commands = new Commands();
+        commands.setupAdbCommands("adb");
+        commands.setupFastbootCommands("fastboot");
         return commands;
     }
 
-    public static ADBCommands fromCmdEnv() {
+    public static Commands fromCmdEnv() {
         //execute through cmd because the env var is only recognized by cmd
-        ADBCommands commands = new ADBCommands();
-        commands.setupCommands("cmd", "/c", "adb");
+        Commands commands = new Commands();
+        commands.setupAdbCommands("cmd", "/c", "adb");
+        commands.setupFastbootCommands("cmd", "/c", "fastboot");
         return commands;
     }
 
-    private static String formAdbPath(String adbDir) {
-        if (adbDir.charAt(adbDir.length() - 1) == '/') {
-            return adbDir + "adb";
-        } else {
-            return adbDir + "/adb";
-        }
+    private static String append(String dir, String exec) {
+        boolean endsWithSlash = dir.charAt(dir.length() - 1) == '/';
+        return endsWithSlash ? (dir + exec) : (dir + "/" + exec);
     }
 
     public void ensurePrivileged() {
@@ -60,7 +59,7 @@ public class ADBCommands {
         }
         String rootResult = root();
         PrivilegeType privilege = PrivilegeType.ADB_ROOT;
-        if (!ADBCommands.hasRoot(rootResult)) {
+        if (!Commands.hasRoot(rootResult)) {
             System.out.println("No adb root. Trying su, answer the request on your phone or grant Shell SU rights");
             if (!checkSU()) {
                 Utilities.errExit("No su access.");
@@ -70,13 +69,12 @@ public class ADBCommands {
         this.privilege = privilege;
     }
 
-    private void setupCommands(String... adbTerms) {
-
+    private void setupAdbCommands(String... adbTerms) {
         PM_UNINSTALL_PER_USER = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "--user 0", "");
         PM_UNINSTALL_PER_USER_KEEP = new CommandTemplate(adbTerms, "shell", "pm", "uninstall", "-k", "--user 0", "");
         DISABLE_USER = new CommandTemplate(adbTerms, "shell", "pm", "disable-user", "");
         INSTALL_BACK = new CommandTemplate(adbTerms, "shell", "pm", "install-existing", "");
-        DEVICES = new CommandTemplate(adbTerms, "devices");
+        ADB_DEVICES = new CommandTemplate(adbTerms, "devices");
         PM_PATH = new CommandTemplate(adbTerms, "shell", "pm", "path", "");
         ADB_PULL = new CommandTemplate(adbTerms, "pull", "");
         TAR = new CommandTemplate(adbTerms, "shell", "tar", "cfp", "", "-C", "", "");
@@ -117,10 +115,16 @@ public class ADBCommands {
         SHELL_LOGCAT = new CommandTemplate(adbTerms, "shell", "logcat");
         GET_SYSTEM_PROC_MOUNTS = new CommandTemplate(adbTerms, "shell", "cat /proc/mounts | grep /system");
         DD = new CommandTemplate(adbTerms, "shell", "dd");
-        setupLateInitCommands(adbTerms);
+        setupLateInitAdbCommands(adbTerms);
     }
 
-    private void setupLateInitCommands(String... adbTerms) {
+    private void setupFastbootCommands(String... fastbootTerms) {
+        FLASH = new CommandTemplate(fastbootTerms, "flash", "", "");
+        FASTBOOT_DEVICES = new CommandTemplate(fastbootTerms, "devices");
+        FASTBOOT_REBOOT = new CommandTemplate(fastbootTerms, "reboot");
+    }
+
+    private void setupLateInitAdbCommands(String... adbTerms) {
         int version = getAndroidVersion();
         String bypass = "--bypass-low-target-sdk-block";
         ADB_INSTALL = new CommandTemplate(adbTerms, "install", version >= 14 ? bypass : "");
@@ -343,12 +347,29 @@ public class ADBCommands {
         return executeCommandWithTimeout(command, 3000);
     }
 
-    public List<Device> listDevices() {
-        String devicesOutput = executeCommandWithTimeout(DEVICES.build(), 50);
+    public List<Device> listAdbDevices() {
+        return listDevices(true);
+    }
+
+    public List<Device> listFastbootDevices() {
+        return listDevices(false);
+    }
+
+    public List<Device> listDevices(boolean adb) {
+        int stIndex;
+        CommandTemplate devicesTemplate;
+        if (adb) {
+            devicesTemplate = ADB_DEVICES;
+            stIndex = 1;
+        } else {
+            devicesTemplate = FASTBOOT_DEVICES;
+            stIndex = 0;
+        }
+        String devicesOutput = executeCommandWithTimeout(devicesTemplate.build(), 50);
         System.out.println(devicesOutput);
         List<String> lines = splitOutputLines(devicesOutput);
         List<Device> devices = new ArrayList<>();
-        for (int i = 1; i < lines.size(); i++) {
+        for (int i = stIndex; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.isEmpty()) {
                 continue;
@@ -583,6 +604,14 @@ public class ADBCommands {
         return executeCommandWithTimeout(REBOOT.build("recovery"), 10_000);
     }
 
+    public String rebootFastboot() {
+        return executeCommandWithTimeout(REBOOT.build("bootloader"), 10_000);
+    }
+
+    public String rebootFromFastboot() {
+        return executeCommandWithTimeout(FASTBOOT_REBOOT.build(), 10_000);
+    }
+
     public String reboot() {
         return executeCommandWithTimeout(REBOOT.build(), 10_000);
     }
@@ -611,6 +640,12 @@ public class ADBCommands {
 
     public String dd(String input, String output) {
         String[] command = DD.buildSU("if=" + input, "of=" + output);
+        System.out.println(Arrays.toString(command));
+        return executeCommandWithTimeout(command, 10_000);
+    }
+
+    public String flash(String partition, String pcPath) {
+        String[] command = FLASH.build(partition, pcPath);
         System.out.println(Arrays.toString(command));
         return executeCommandWithTimeout(command, 10_000);
     }
@@ -669,11 +704,11 @@ enum PrivilegeType {
 }
 
 class CommandTemplate {
-    private final String[] adbTerms;
+    private final String[] execTerms;
     private final String[] components; // Empty components are placeholders for arguments
 
-    public CommandTemplate(String[] adbTerms, String... components) {
-        this.adbTerms = adbTerms;
+    public CommandTemplate(String[] execTerms, String... components) {
+        this.execTerms = execTerms;
         this.components = components;
     }
 
@@ -694,10 +729,10 @@ class CommandTemplate {
     }
 
     public String[] build(boolean su, List<String> suArgs, String... args) {
-        List<String> command = new ArrayList<>(adbTerms.length + components.length + 2);
+        List<String> command = new ArrayList<>(execTerms.length + components.length + 2);
         List<String> filledArgs = new ArrayList<>();
 
-        command.addAll(Arrays.asList(adbTerms));
+        command.addAll(Arrays.asList(execTerms));
         boolean isShell = components.length > 0 && components[0].equals("shell");
         boolean wrapInner = su && isShell;
         int startIndex = 0;
