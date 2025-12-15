@@ -18,6 +18,7 @@ public class CLI {
     private static final String EXPORT_TAR = "export.tar";
     private static final String IMPORT_TAR = "import.tar";
     private static final String DATA_EXPORT = "data-export";
+    private static final String PERM_EXPORT = "perm-export";
     private static final String EXPORT = "export";
     private static final String TEMP_DIR = "temp_unpack";
     private static final String DEV_BLOCK_BY_NAME = "/dev/block/by-name/";
@@ -239,6 +240,12 @@ public class CLI {
                 Options opts = Options.parseOptions(args,1);
                 String outputDir = opts.dir != null ? opts.dir : DATA_EXPORT;
                 exportAppsData(opts.packageType, outputDir);
+            } break;
+
+            case "export-perm": {
+                Options opts = Options.parseOptions(args,1);
+                String outputDir = opts.dir != null ? opts.dir : PERM_EXPORT;
+                exportAppsPermissions(opts.packageType, outputDir);
             } break;
 
             // Imports
@@ -577,6 +584,42 @@ public class CLI {
             String rmResult = commands.rm(STORAGE_EMULATED_0 + EXPORT_TAR);
             System.out.println(rmResult);
         }
+    }
+
+    private void exportAppsPermissions(PackageType type, String outputDir) {
+        ensureDirectory(outputDir);
+        String packagesRes = commands.listPackagesBy(type);
+        List<String> packages = Packages.parseToList(packagesRes);
+        System.out.println("Backing up permissions from " + packages.size() + " packages");
+
+        StringBuilder output = new StringBuilder(1024);
+        int exported = 0;
+        for (int i = 0; i < packages.size(); i++) {
+            String pkgName = packages.get(i);
+            List<GrantablePermission> permissions = commands.getGrantablePermissions(pkgName);
+            if (permissions == null) {
+                System.err.println("Package not found or an error occurred for " + pkgName);
+                continue;
+            }
+            if (permissions.size() == 0) {
+                continue;
+            }
+            output.append(pkgName).append("\n");
+            for (GrantablePermission perm : permissions) {
+                output.append(perm.name).append(' ').append(perm.granted).append('\n');
+            }
+            output.append("\n");
+            System.out.println("[" + i + "/" + packages.size() + "] " + pkgName);
+            exported++;
+        }
+        Path outputPath = Paths.get(outputDir).resolve("perms-" + System.currentTimeMillis() + "txt");
+        try {
+            Files.write(outputPath, output.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            errorExit(e.toString());
+        }
+        System.out.println("Exported permissions from " + exported + " apps in total");
+        System.out.println("Apps with no declared permissions have been skipped.");
     }
 
     private void ensureDirectory(String dirPath) {
@@ -1157,6 +1200,7 @@ public class CLI {
         System.out.println("  export [options]                   Exports many packages");
         System.out.println("  export-data <name> [options]       [ROOT] Export app's data directory");
         System.out.println("  export-data [options]              [ROOT] Export many apps' data directories");
+        System.out.println("  export-perm [options]              Export many apps' permissions");
         System.out.println();
         System.out.println("IMPORT (PC -> PHONE):");
         System.out.println("  import <name> [options]            Imports package by name from given directory");

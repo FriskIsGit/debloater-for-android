@@ -21,7 +21,7 @@ public class Commands {
             INSTALL_BACK, INSTALL_CREATE, INSTALL_WRITE, INSTALL_COMMIT, EXISTS,
             REMOUNT_READ_ONLY, REMOUNT_READ_WRITE, MOUNT, CHECK_SU, MOVE, COPY, GET_SELINUX_MODE,
             GET_PROP, SET_PROP, DIRECTORY_SIZE, LS, DISK_FREE, GET_BUILD, DMCTL, TUNE2FS, REBOOT,
-            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD, FLASH, FASTBOOT_DEVICES, FASTBOOT_REBOOT;
+            SHELL_LOGCAT, GET_SYSTEM_PROC_MOUNTS, DD, FLASH, FASTBOOT_DEVICES, FASTBOOT_REBOOT, DUMPSYS;
 
     public static Commands fromDir(String toolsDir) {
         //we must include the entire path to avoid: CreateProcess error=2 The system cannot find the file specified
@@ -115,6 +115,7 @@ public class Commands {
         SHELL_LOGCAT = new CommandTemplate(adbTerms, "shell", "logcat");
         GET_SYSTEM_PROC_MOUNTS = new CommandTemplate(adbTerms, "shell", "cat /proc/mounts | grep /system");
         DD = new CommandTemplate(adbTerms, "shell", "dd");
+        DUMPSYS = new CommandTemplate(adbTerms, "shell", "dumpsys", "");
         setupLateInitAdbCommands(adbTerms);
     }
 
@@ -650,6 +651,51 @@ public class Commands {
         return executeCommandWithTimeout(command, 10_000);
     }
 
+    public List<GrantablePermission> getGrantablePermissions(String packageName) {
+        String[] command = DUMPSYS.build("package", packageName);
+        // No need to wait because it's a dump
+        String dumpsysResult = executeCommandWithTimeout(command, 100);
+        int fail = dumpsysResult.lastIndexOf("Unable to find package:");
+        if (fail != -1) {
+            return null;
+        }
+        int packagesIndex = dumpsysResult.indexOf("Packages:");
+        if (packagesIndex == -1) {
+            return null;
+        }
+        dumpsysResult = dumpsysResult.substring(packagesIndex);
+        List<String> lines = splitOutputLines(dumpsysResult);
+        boolean parsingPerms = false;
+        List<GrantablePermission> permissions = new ArrayList<>();
+        for (String line : lines) {
+            if (!parsingPerms) {
+                if (line.contains("runtime permissions:")) {
+                    parsingPerms = true;
+                }
+                continue;
+            }
+            // Quit on first failure to parse
+            line = line.trim();
+            int colon = line.indexOf(":");
+            if (colon == -1) {
+                break;
+            }
+            int grantedKey = line.indexOf("granted=", colon + 1);
+            if (grantedKey == -1) {
+                break;
+            }
+            int comma = line.indexOf(',', grantedKey);
+            if (comma == -1) {
+                break;
+            }
+
+            String state = line.substring(grantedKey + "granted=".length(), comma);
+            String permName = line.substring(0, colon);
+            permissions.add(new GrantablePermission(permName, Boolean.parseBoolean(state)));
+        }
+        return permissions;
+    }
+
     public static List<String> splitOutputLines(String output) {
         return splitOutputLines(output, true);
     }
@@ -890,4 +936,17 @@ class DirEntry {
     }
 }
 
+class GrantablePermission {
+    String name;
+    boolean granted;
 
+    public GrantablePermission(String name, boolean granted) {
+        this.name = name;
+        this.granted = granted;
+    }
+
+    @Override
+    public String toString() {
+        return "{" + name + ", " + granted + "}";
+    }
+}
