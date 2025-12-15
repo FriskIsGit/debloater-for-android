@@ -277,6 +277,11 @@ public class CLI {
                 importAppsData(dataDir);
             } break;
 
+            case "import-perm": {
+                ensureArgument(args, 1, "Usage: import-perm <perm-file.txt>");
+                importAppsPermissions(args[1]);
+            } break;
+
             // Limited by pm checks - is not a changeable permission type
             case "grant": {
                 Options opts = Options.parseOptions(args, 3);
@@ -612,7 +617,8 @@ public class CLI {
             System.out.println("[" + i + "/" + packages.size() + "] " + pkgName);
             exported++;
         }
-        Path outputPath = Paths.get(outputDir).resolve("perms-" + System.currentTimeMillis() + "txt");
+        long unixSec = System.currentTimeMillis() / 1000;
+        Path outputPath = Paths.get(outputDir).resolve("perms-" + LocalDate.now() + "-" + unixSec + ".txt");
         try {
             Files.write(outputPath, output.toString().getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
@@ -620,6 +626,53 @@ public class CLI {
         }
         System.out.println("Exported permissions from " + exported + " apps in total");
         System.out.println("Apps with no declared permissions have been skipped.");
+    }
+
+    private void importAppsPermissions(String permsPath) {
+        List<String> lines = null;
+        try {
+            lines = Files.readAllLines(Paths.get(permsPath));
+        } catch (IOException e) {
+            errorExit(e.toString());
+        }
+        if (lines == null || lines.isEmpty()) {
+            errorExit("Nothing to export");
+            return;
+        }
+        String packagesResult = commands.listPackagesBy(PackageType.ALL);
+        Set<String> installed = Packages.parseToSet(packagesResult);
+
+        boolean expectPkg = true;
+        String currentPkg = null;
+        for (String line : lines) {
+            if (line.isEmpty()) {
+                expectPkg = true;
+                continue;
+            }
+
+            if (expectPkg) {
+                currentPkg = line.trim();
+                expectPkg = false;
+                continue;
+            }
+
+            if (!installed.contains(currentPkg)) {
+                System.out.println("Skipping permission because package " + currentPkg + " is missing");
+                continue;
+            }
+            String[] parts = line.split(" ");
+            if (parts.length != 2) {
+                System.err.println("Invalid number of parts, expected 2, found " + parts.length);
+                continue;
+            }
+            String permName = parts[0];
+            boolean granted = Boolean.parseBoolean(parts[1]);
+            String result = granted ?
+                    commands.pmGrantPermission(permName, currentPkg, false) :
+                    commands.pmRevokePermission(permName, currentPkg, false);
+            System.out.println(result);
+        }
+
     }
 
     private void ensureDirectory(String dirPath) {
@@ -1207,6 +1260,7 @@ public class CLI {
         System.out.println("  import [options]                   Imports all packages from given directory");
         System.out.println("  import-data <name> [options]       [ROOT] Import app's data directory");
         System.out.println("  import-data [options]              [TODO] Import all apps' data");
+        System.out.println("  import-perm <path>                 Import many apps' permissions from file");
         System.out.println();
         System.out.println("Options:");
         System.out.println("  --type, -pt, --package-type        Package scope: user, system, all");
