@@ -375,12 +375,12 @@ public class Commands {
             if (line.isEmpty()) {
                 continue;
             }
-            int space = line.indexOf('\t');
+            int space = Utilities.firstNonNegative(
+                    () -> line.indexOf('\t'),
+                    () -> line.indexOf(' ')
+            );
             if (space == -1) {
-                space = line.indexOf(' ');
-                if (space == -1) {
-                    continue;
-                }
+                continue;
             }
             String serial = line.substring(0, space).trim();
             String status = line.substring(space + 1).trim();
@@ -474,12 +474,12 @@ public class Commands {
         if (duRes.startsWith("du:") || duRes.isEmpty()) {
             return -1;
         }
-        int space = duRes.indexOf('\t');
+        int space = Utilities.firstNonNegative(
+                () -> duRes.indexOf('\t'),
+                () -> duRes.indexOf(' ')
+        );
         if (space == -1) {
-            space = duRes.indexOf(' ');
-            if (space == -1) {
-                return -1;
-            }
+            return -1;
         }
         String sizeFormat = duRes.substring(0, space).trim();
         if (sizeFormat.isEmpty()) {
@@ -674,20 +674,13 @@ public class Commands {
                 }
                 continue;
             }
-            // Quit on first failure to parse
             line = line.trim();
-            int colon = line.indexOf(":");
-            if (colon == -1) {
+            final int[] indices = Utilities.indicesOf(line, ":", "granted=", ",");
+            if (indices == null) {
                 break;
             }
-            int grantedKey = line.indexOf("granted=", colon + 1);
-            if (grantedKey == -1) {
-                break;
-            }
-            int comma = line.indexOf(',', grantedKey);
-            if (comma == -1) {
-                break;
-            }
+
+            int colon = indices[0], grantedKey = indices[1], comma = indices[2];
 
             String state = line.substring(grantedKey + "granted=".length(), comma);
             String permName = line.substring(0, colon);

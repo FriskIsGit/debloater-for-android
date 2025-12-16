@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -201,5 +202,32 @@ public class Utilities {
             components.add(content.toString());
         }
         return components;
+    }
+
+    @SafeVarargs
+    public static int firstNonNegative(Supplier<Integer>... suppliers) {
+        for (Supplier<Integer> supplier : suppliers) {
+            int result = supplier.get();
+            if (result >= 0) {
+                return result;
+            }
+        }
+        return -1;
+    }
+
+    // Returns the indices of the specified keys in order. If any key is missing returns null
+    public static int[] indicesOf(String str, String... keys) {
+        int[] indices = new int[keys.length];
+        int from = 0;
+        for (int i = 0; i < keys.length; i++) {
+            String key = keys[i];
+            int nextIndex = str.indexOf(key, from);
+            if (nextIndex == -1) {
+                return null;
+            }
+            from = nextIndex + key.length();
+            indices[i] = nextIndex;
+        }
+        return indices;
     }
 }
