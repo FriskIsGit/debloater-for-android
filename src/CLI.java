@@ -670,6 +670,10 @@ public class CLI {
             String result = granted ?
                     commands.pmGrantPermission(permName, currentPkg, false) :
                     commands.pmRevokePermission(permName, currentPkg, false);
+            if (result.contains("java.lang.SecurityException:")) {
+                System.out.println("Unable to import permissions, aborting.");
+                errorExit(result);
+            }
             System.out.println(result);
         }
 
