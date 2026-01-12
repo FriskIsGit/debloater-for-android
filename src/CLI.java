@@ -705,14 +705,22 @@ public class CLI {
         System.out.println(connected + (connected == 1 ? " connected device" : " connected devices"));
 
         if (devices.isEmpty()) {
-            System.out.println("No ADB devices detected (is 'USB debugging' enabled?), press enter to refresh");
+            System.out.println("No ADB devices detected. Is 'USB debugging' enabled? Press enter to refresh");
             if (scanner.hasNextLine()) {
                 scanner.nextLine();
             }
             awaitAdbDevice();
         } else if (devices.size() > 1) {
             System.err.println("Error: more than one device/emulator");
+        } else if (connected == 0 && devices.get(0).status.equals("unauthorized")) {
+            System.out.println("Device is unauthorized. Check for a confirmation dialog on your device.\n" +
+                    "If one doesn't appear. Try replugging your device. Press enter to refresh.");
+            if (scanner.hasNextLine()) {
+                scanner.nextLine();
+            }
+            awaitAdbDevice();
         }
+
     }
 
     private void awaitFastbootDevice() {
