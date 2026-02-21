@@ -35,7 +35,6 @@ com.android.email
 com.android.federatedcompute.services
 com.android.hotwordenrollment.okgoogle
 com.android.hotwordenrollment.xgoogle
-com.android.managedprovisioning
 com.android.networkstack.tethering.xiaomi
 com.android.protips
 com.android.providers.partnerbookmarks
