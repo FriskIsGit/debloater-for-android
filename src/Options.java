@@ -39,6 +39,9 @@ public class Options {
                     }
                     opts.dir = options[i];
                 } break;
+
+                default:
+                    Utilities.errExit("Unrecognized flag '" + options[i] + "' was passed");
             }
         }
         return opts;
