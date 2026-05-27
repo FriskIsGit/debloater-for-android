@@ -689,6 +689,33 @@ public class Commands {
         return permissions;
     }
 
+    public List<AppVersion> getAppVersions(String packageName) {
+        String[] command = DUMPSYS.build("package", packageName);
+        String dumpsysResult = executeCommandWithTimeout(command, 100);
+        int fail = dumpsysResult.lastIndexOf("Unable to find package:");
+        if (fail != -1) {
+            return null;
+        }
+        int packagesIndex = dumpsysResult.indexOf("Packages:");
+        if (packagesIndex == -1) {
+            return null;
+        }
+        dumpsysResult = dumpsysResult.substring(packagesIndex);
+        List<String> lines = splitOutputLines(dumpsysResult);
+        String versionCode = null;
+        List<AppVersion> versions = new ArrayList<>();
+        for (String line : lines) {
+            if (line.contains("versionCode=")) {
+                versionCode = getFirstPairValue(line);
+            } else if (line.contains("versionName=")) {
+                String versionName = getFirstPairValue(line);
+                AppVersion version = new AppVersion(versionCode, versionName);
+                versions.add(version);
+            }
+        }
+        return versions;
+    }
+
     public static List<String> splitOutputLines(String output) {
         return splitOutputLines(output, true);
     }
@@ -723,6 +750,18 @@ public class Commands {
             return "";
         }
         return pair.substring(eq + 1);
+    }
+
+    private static String getFirstPairValue(String line) {
+        int eq = line.indexOf('=');
+        if (eq == -1 || eq == line.length() - 1) {
+            return "";
+        }
+        int whitespace = line.indexOf(' ', eq+1);
+        if (whitespace == -1) {
+            whitespace = line.length();
+        }
+        return line.substring(eq + 1, whitespace);
     }
 }
 
@@ -941,5 +980,19 @@ class GrantablePermission {
     @Override
     public String toString() {
         return "{" + name + ", " + granted + "}";
+    }
+}
+
+class AppVersion {
+    String versionCode, versionName;
+
+    public AppVersion(String versionCode, String versionName) {
+        this.versionCode = versionCode;
+        this.versionName = versionName;
+    }
+
+    @Override
+    public String toString() {
+        return "{versionCode=" + versionCode + ", versionName=" + versionName + '}';
     }
 }
