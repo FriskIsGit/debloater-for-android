@@ -3,7 +3,7 @@ Root privileges are not required for the uninstaller to work <br>
 Most packages in the list are from google, xiaomi and samsung.
 ### Requirements:
 ```
-- JDK 8 or higher
+- JDK 17 or higher
 - adb (Android Debug Bridge, part of platform tools)
 ```
 

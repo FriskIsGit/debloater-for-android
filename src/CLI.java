@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -61,7 +63,7 @@ public class CLI {
 
     protected void start(String[] args) {
         awaitAdbDevice();
-        String action = args[0];
+        String action = args[0].toLowerCase();
         switch (action) {
             case "debloat":
                 debloat(false);
@@ -322,8 +324,7 @@ public class CLI {
                 commands.rm(phonePath);
             } break;
 
-            case "ab-info":
-            case "AB-info": {
+            case "ab-info": {
                 String abUpdate = commands.getProp("ro.build.ab_update");
                 String slotSuffix = commands.getProp("ro.boot.slot_suffix");
                 System.out.println("A/B partitioned: " + abUpdate);
@@ -338,17 +339,15 @@ public class CLI {
                 System.out.println("Count: " + apps.size());
             } break;
 
-            case "Android":
             case "android": {
                 System.out.println("Android " + commands.getAndroidVersion());
             } break;
 
-            case "checkSU": {
+            case "checksu": {
                 boolean res = commands.checkSU();
                 System.out.println("SU access: " + res);
             } break;
 
-            case "SELinux":
             case "selinux":
                 System.out.println("SE Linux mode: " + commands.getSELinuxMode());
                 break;
@@ -382,14 +381,14 @@ public class CLI {
                 }
             } break;
 
-            case "adbInstall": {
+            case "adbinstall": {
                 ensureArgument(args, 1, "Select 'on' or 'off'");
                 String value = args[1].equals("on") ? "1" : "0";
                 String propRes = commands.setProp("persist.security.adbinstall", value);
                 System.out.println(propRes);
             } break;
 
-            case "adbInput": {
+            case "adbinput": {
                 ensureArgument(args, 1, "Select 'on' or 'off'");
                 String value = args[1].equals("on") ? "1" : "0";
                 String propRes = commands.setProp("persist.security.adbinput", value);
@@ -933,6 +932,7 @@ public class CLI {
         }
 
         List<String> uninstalled = new ArrayList<>();
+        List<String> disabled = new ArrayList<>();
         long start = System.currentTimeMillis();
         int fail = 0;
 
@@ -947,7 +947,14 @@ public class CLI {
                 uninstalled.add(currentPackage);
                 continue;
             } else if (output.startsWith("Error") || output.startsWith("Failure")) {
-                fail++;
+                String disabledOutput = commands.disablePackageByName(currentPackage);
+                if (disabledOutput.contains("new state: disabled-user")) {
+                    System.out.println("Disabled (via fallback): " + currentPackage);
+                    disabled.add(currentPackage);
+                    continue;
+                } else {
+                    fail++;
+                }
             }
 
             if (!output.isEmpty()) {
@@ -955,22 +962,37 @@ public class CLI {
             }
         }
         long end = System.currentTimeMillis();
+        System.out.println("----------------------------------");
         System.out.println("Completed in: " + (double) (end - start) / 1000 + " seconds");
         System.out.println("Packages uninstalled: " + uninstalled.size());
+        if (!disabled.isEmpty()) {
+            System.out.println("Packages disabled: " + disabled.size());
+        }
         System.out.println("Failures: " + fail);
 
         if (!uninstalled.isEmpty()) {
-            long unixSec = System.currentTimeMillis() / 1000;
-            Path debloatDump = Paths.get("debloat-" + LocalDate.now() + "-" + unixSec + ".txt");
-            byte[] uninstalledAsBytes = String.join("\n", uninstalled).getBytes(StandardCharsets.UTF_8);
-            try {
-                Files.write(debloatDump, uninstalledAsBytes);
-                System.out.println("Dumped uninstalled list to " + debloatDump);
-            } catch (IOException e) {
-                errorExit(e.getMessage());
-            }
+            dumpList("uninstalled", uninstalled);
+        }
+        if (!disabled.isEmpty()) {
+            dumpList("disabled", disabled);
         }
         printRestoreCommandInfo();
+    }
+
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+
+    private static void dumpList(String label, List<String> items) {
+        if (items == null || items.isEmpty()) return;
+
+        String timestamp = LocalDateTime.now().format(FMT);
+        String debloatPath = "debloat-" + label + "-" + timestamp + ".txt";
+        Path dump = Paths.get(debloatPath);
+        try {
+            Files.writeString(dump, String.join("\n", items));
+            System.out.println("Dumped " + label + " list to " + dump);
+        } catch (IOException e) {
+            errorExit(e.getMessage());
+        }
     }
 
     private void debloatCust() {
