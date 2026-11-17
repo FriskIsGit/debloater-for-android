@@ -130,6 +130,7 @@ com.lenovo.lenovooobe
 com.lenovo.lps.cloud.sync.row
 com.lenovo.lsf
 com.lenovo.lsf.device
+com.mediatek.mdmlsample
 com.mi.android.globalminusscreen
 com.mi.android.globalpersonalassistant
 com.mi.global.bbs
@@ -233,6 +234,7 @@ com.samsung.android.emojiupdater
 com.samsung.android.fast
 com.samsung.android.game.gamehome
 com.samsung.android.game.gametools
+com.samsung.android.game.gos
 com.samsung.android.hmt.vrshell
 com.samsung.android.hmt.vrsvc
 com.samsung.android.ipsgeofence
@@ -243,6 +245,7 @@ com.samsung.android.knox.containeragent
 com.samsung.android.knox.containercore
 com.samsung.android.knox.kpecore
 com.samsung.android.knox.pushmanager
+com.samsung.android.knox.zt.framework
 com.samsung.android.livestickers
 com.samsung.android.location
 com.samsung.android.mapsagent
@@ -297,6 +300,7 @@ com.samsung.klmsagent
 com.samsung.knox.securefolder
 com.samsung.mlp
 com.samsung.safetyinformation
+com.samsung.sait.sohservice
 com.samsung.sec.android.application.csc
 com.samsung.SMT
 com.samsung.storyservice
@@ -322,6 +326,7 @@ com.samsung.android.hdmapp
 com.samsung.android.scpm
 com.sec.android.app.applinker
 com.sec.android.app.billing
+com.sec.android.app.bluetoothagent
 com.sec.android.app.bluetoothtest
 com.sec.android.app.chromecustomizations
 com.sec.android.app.DataCreate
@@ -336,13 +341,16 @@ com.sec.android.app.safetyassurance
 com.sec.android.app.samsungapps
 com.sec.android.app.sbrowser
 com.sec.android.app.SecSetupWizard
+com.sec.android.app.servicemodeapp
 com.sec.android.app.setupwizardlegalprovider
 com.sec.android.app.voicenote
 com.sec.android.app.wlantest
+com.sec.android.CcInfo
 com.sec.android.daemonapp
 com.sec.android.diagmonagent
 com.sec.android.easyMover
 com.sec.android.easyMover.Agent
+com.sec.android.iaft
 com.sec.android.provider.emergencymode
 com.sec.android.RilServiceModeApp
 com.sec.android.sdhms
@@ -351,14 +359,18 @@ com.sec.android.smartfpsadjuster
 com.sec.android.splitsound
 com.sec.android.widgetapp.easymodecontactswidget
 com.sec.android.widgetapp.samsungapps
+com.sec.app.RilErrorNotifier
 com.sec.bcservice
 com.sec.enterprise.knox.cloudmdm.smdms
 com.sec.enterprise.mdm.services.simpin
+com.sec.epdgtestapp
+com.sec.facatfunction
 com.sec.factory.camera
 com.sec.factory.cameralyzer
 com.sec.imslogger
 com.sec.knox.knoxsetupwizardclient
 com.sec.knox.packageverifier
+com.sec.location.nfwlocationprivacy
 com.sec.location.nsflp2
 com.sec.spp.push
 com.sem.factoryapp
@@ -433,6 +445,7 @@ com.miuix.editor
 com.rongcard.eidapi
 com.dti.bouyguestelecom
 com.altice.android.myapps
+com.aura.oobe.samsung.gl
 com.aura.oobe.vodafone
 com.ironsource.appcloud.oobe.hutchison
 com.sfr.android.sfrjeux
@@ -442,5 +455,6 @@ com.orange.update
 com.google.android.accessibility.switchaccess
 com.android.quicksearchbox
 com.miui.nextpay
+de.axelspringer.yana.zeropage
 de.telekom.tsc
 eu.xiaomi.ext
