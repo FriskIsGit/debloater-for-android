@@ -104,7 +104,6 @@ com.google.android.music
 com.google.android.onetimeinitializer
 com.google.android.ondevicepersonalization.services
 com.google.android.overlay.gmsconfig.personalsafety
-com.google.android.overlay.modules.cellbroadcastreceiver
 com.google.android.partnersetup
 com.google.android.pixel.setupwizard
 com.google.android.printservice.recommendation
@@ -188,7 +187,6 @@ com.qualcomm.qti.uim
 com.qualcomm.qti.uimGbaApp
 com.quickplay.android.bellmediaplayer
 com.samsung.aasaservice
-com.samsung.advp.imssettings
 com.samsung.android.aircommandmanager
 com.samsung.android.allshare.service.fileshare
 com.samsung.android.allshare.service.mediashare
@@ -255,7 +253,6 @@ com.samsung.android.mdx
 com.samsung.android.mdx.kit
 com.samsung.android.mdx.quickboard
 com.samsung.android.mobileservice
-com.samsung.android.net.wifi.wifiguider
 com.samsung.android.networkdiagnostic
 com.samsung.android.oneconnect
 com.samsung.android.privateshare
@@ -276,7 +273,6 @@ com.samsung.android.sm
 com.samsung.android.sm.devicesecurity
 com.samsung.android.sm.policy
 com.samsung.android.smartcallprovider
-com.samsung.android.smartface
 com.samsung.android.smartsuggestions
 com.samsung.android.smartswitchassistant
 com.samsung.android.spay
@@ -296,8 +292,6 @@ com.samsung.android.widgetapp.yahooedge.sport
 com.samsung.app.highlightplayer
 com.samsung.cmh
 com.samsung.ecomm.global
-com.samsung.faceservice
-com.samsung.ims.smk
 com.samsung.ipservice
 com.samsung.klmsagent
 com.samsung.knox.securefolder
@@ -314,7 +308,6 @@ com.samsung.android.app.telephonyui.esimclient
 com.samsung.android.providers.factory
 com.samsung.android.dsms
 com.samsung.android.mcfds
-com.samsung.android.smartface.overlay
 com.samsung.android.accessibility.talkback
 com.samsung.android.peripheral.framework
 com.samsung.crane
@@ -350,7 +343,6 @@ com.sec.android.daemonapp
 com.sec.android.diagmonagent
 com.sec.android.easyMover
 com.sec.android.easyMover.Agent
-com.sec.android.emergencylauncher
 com.sec.android.provider.emergencymode
 com.sec.android.RilServiceModeApp
 com.sec.android.sdhms
@@ -368,9 +360,7 @@ com.sec.imslogger
 com.sec.knox.knoxsetupwizardclient
 com.sec.knox.packageverifier
 com.sec.location.nsflp2
-com.sec.phone
 com.sec.spp.push
-com.sec.vsim.ericssonnsds.webapp
 com.sem.factoryapp
 com.skms.android.agent
 com.tencent.soter.soterserver
@@ -436,7 +426,6 @@ com.xiaomi.migameservice
 com.mfashiongallery.emag
 com.xiaomi.macro
 com.xiaomi.trustservice
-com.android.role.notes.enabled
 com.xiaomi.otrpbroker
 com.quicinc.voice.activation
 com.google.android.soundpicker
