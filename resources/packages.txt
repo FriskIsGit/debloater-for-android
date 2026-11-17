@@ -52,6 +52,7 @@ com.dsi.ant.plugins.antplus
 com.dsi.ant.sample.acquirechannels
 com.dsi.ant.server
 com.dsi.ant.service.socket
+com.duokan.phone.remotecontroller
 com.facebook.appmanager
 com.facebook.services
 com.facebook.system
@@ -98,9 +99,11 @@ com.google.android.gms.location.history
 com.google.android.gms.supervision
 com.google.android.gsf.login
 com.google.android.googlequicksearchbox
+com.google.android.health.connect.backuprestore
 com.google.android.ims
 com.google.android.marvin.talkback
 com.google.android.music
+com.google.android.nearby.halfsheet
 com.google.android.onetimeinitializer
 com.google.android.ondevicepersonalization.services
 com.google.android.overlay.gmsconfig.personalsafety
@@ -177,6 +180,7 @@ com.miui.yellowpage
 com.mobeam.barcodeService
 com.netflix.partner.activation
 com.opera.preinstall
+com.osp.app.signin
 com.qti.confuridialer
 com.qualcomm.atfwd
 com.qualcomm.qti.modemtestmode
@@ -210,6 +214,7 @@ com.samsung.android.app.vrsetupwizardstub
 com.samsung.android.app.watchmanagerstub
 com.samsung.android.ardrawing
 com.samsung.android.aremoji
+com.samsung.android.aremojieditor
 com.samsung.android.arzone
 com.samsung.android.authfw
 com.samsung.android.aware.service
@@ -221,6 +226,7 @@ com.samsung.android.bixby.agent.dummy
 com.samsung.android.bixby.service
 com.samsung.android.bixby.wakeup
 com.samsung.android.bixbyvision.framework
+com.samsung.android.callbgprovider
 com.samsung.android.carkey
 com.samsung.android.coldwalletservice
 com.samsung.android.da.daagent
@@ -235,8 +241,10 @@ com.samsung.android.fast
 com.samsung.android.game.gamehome
 com.samsung.android.game.gametools
 com.samsung.android.game.gos
+com.samsung.android.gru
 com.samsung.android.hmt.vrshell
 com.samsung.android.hmt.vrsvc
+com.samsung.android.incall.contentprovider
 com.samsung.android.ipsgeofence
 com.samsung.android.kidsinstaller
 com.samsung.android.knox.analytics.uploader
@@ -244,6 +252,7 @@ com.samsung.android.knox.attestation
 com.samsung.android.knox.containeragent
 com.samsung.android.knox.containercore
 com.samsung.android.knox.kpecore
+com.samsung.android.knox.mpos
 com.samsung.android.knox.pushmanager
 com.samsung.android.knox.zt.framework
 com.samsung.android.livestickers
@@ -259,6 +268,7 @@ com.samsung.android.mobileservice
 com.samsung.android.networkdiagnostic
 com.samsung.android.oneconnect
 com.samsung.android.privateshare
+com.samsung.android.rampart
 com.samsung.android.rubin.app
 com.samsung.android.samsungpass
 com.samsung.android.samsungpassautofill
@@ -285,6 +295,7 @@ com.samsung.android.svcagent
 com.samsung.android.svoiceime
 com.samsung.android.tapack.authfw
 com.samsung.android.themecenter
+com.samsung.android.themestore
 com.samsung.android.universalswitch
 com.samsung.android.visioncloudagent
 com.samsung.android.visionintelligence
@@ -292,7 +303,9 @@ com.samsung.android.voc
 com.samsung.android.vtcamerasettings
 com.samsung.android.widgetapp.yahooedge.financinance
 com.samsung.android.widgetapp.yahooedge.sport
+com.samsung.android.wifi.ai
 com.samsung.app.highlightplayer
+com.samsung.cmfa.AuthTouch
 com.samsung.cmh
 com.samsung.ecomm.global
 com.samsung.ipservice
@@ -322,6 +335,7 @@ com.samsung.android.server.wifi.mobilewips
 com.samsung.rcs
 com.samsung.android.visualars
 com.samsung.android.service.stplatform
+com.samsung.android.service.tagservice
 com.samsung.android.hdmapp
 com.samsung.android.scpm
 com.sec.android.app.applinker
@@ -351,6 +365,7 @@ com.sec.android.diagmonagent
 com.sec.android.easyMover
 com.sec.android.easyMover.Agent
 com.sec.android.iaft
+com.sec.android.mimage.avatarstickers
 com.sec.android.provider.emergencymode
 com.sec.android.RilServiceModeApp
 com.sec.android.sdhms
@@ -375,6 +390,7 @@ com.sec.location.nsflp2
 com.sec.spp.push
 com.sem.factoryapp
 com.skms.android.agent
+com.snap.camerakit.plugin.v1
 com.tencent.soter.soterserver
 com.wingtech.standard
 com.wsomacp
